@@ -52,13 +52,19 @@ jobs:
         if: failure()
         run: |
           {
-            echo '### Gradle failure log'
+            echo '### Gradle failure'
+            echo '#### Kotlin compiler errors'
             echo '```'
-            grep -A 40 'What went wrong' gradle.log 2>/dev/null | head -60 || tail -n 120 gradle.log
+            grep -E '^e: ' gradle.log | head -40 || echo '(none found)'
+            echo '```'
+            echo '#### What went wrong'
+            echo '```'
+            grep -A 25 'What went wrong' gradle.log 2>/dev/null | head -40 || tail -n 60 gradle.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          MSG=$( (grep -A 40 'What went wrong' gradle.log 2>/dev/null || tail -n 60 gradle.log) | head -50 | sed 's/$/%0A/' | tr -d '\n')
-          echo "::error title=Gradle build failed::${MSG}"
+          KERR=$(grep -E '^e: ' gradle.log | head -20 | sed 's/$/%0A/' | tr -d '\n')
+          if [ -z "$KERR" ]; then KERR=$( (grep -A 20 'What went wrong' gradle.log 2>/dev/null || tail -n 40 gradle.log) | head -40 | sed 's/$/%0A/' | tr -d '\n'); fi
+          echo "::error title=Gradle build failed::${KERR}"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
