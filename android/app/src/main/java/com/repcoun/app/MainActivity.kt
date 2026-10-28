@@ -7,14 +7,13 @@ import android.os.Bundle
 import android.util.Rational
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.health.connect.client.permission.PermissionController
-import androidx.health.connect.client.permission.RequestPermissionsRequestOptions
+import androidx.health.connect.client.contracts.HealthPermissionsRequestContract
 import com.getcapacitor.BridgeActivity
 
 class MainActivity : BridgeActivity() {
 
     private var cameraLauncher: ActivityResultLauncher<Array<String>>? = null
-    private var hcLauncher: ActivityResultLauncher<Array<String>>? = null
+    private var hcLauncher: ActivityResultLauncher<Set<String>>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,18 +29,13 @@ class MainActivity : BridgeActivity() {
             RepCounPlugin.resolveCamera(result[Manifest.permission.CAMERA] == true)
         }
 
-        // Health Connect permissions through the official contract
-        try {
-            val options = RequestPermissionsRequestOptions.Builder()
-                .setPermissionIds(ArrayList(RepCounPlugin.HC_PERMISSIONS))
-                .build()
-            val contract = PermissionController.createRequestPermissionContract(options)
-            hcLauncher = activityResultRegistry.register("repcoun.hc", contract) { result ->
-                val granted = result.isNotEmpty() && result.values.all { it }
-                RepCounPlugin.resolveHc(granted)
-            }
-        } catch (t: Throwable) {
-            // Health Connect not present on this device — handled gracefully in JS
+        // Health Connect permissions via the official 1.1.0 contract:
+        // Set<String> in -> Set<String> granted out
+        hcLauncher = activityResultRegistry.register(
+            "repcoun.hc",
+            HealthPermissionsRequestContract()
+        ) { granted ->
+            RepCounPlugin.resolveHc(granted.isNotEmpty())
         }
     }
 
@@ -50,7 +44,7 @@ class MainActivity : BridgeActivity() {
     }
 
     fun launchHcPermissions() {
-        hcLauncher?.launch(arrayOf())
+        hcLauncher?.launch(RepCounPlugin.HC_PERMISSIONS)
     }
 
     /**

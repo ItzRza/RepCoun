@@ -9,6 +9,7 @@ import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Energy
@@ -18,6 +19,7 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
@@ -50,7 +52,10 @@ class RepCounPlugin : Plugin() {
             return
         }
         cameraCall = call
-        activity?.let { (it as? MainActivity)?.launchCameraPermission() } ?: run {
+        val act = activity as? MainActivity
+        if (act != null) {
+            act.runOnUiThread { act.launchCameraPermission() }
+        } else {
             val data = JSObject()
             data.put("granted", false)
             call.resolve(data)
@@ -113,7 +118,10 @@ class RepCounPlugin : Plugin() {
             return
         }
         hcCall = call
-        activity?.let { (it as? MainActivity)?.launchHcPermissions() } ?: run {
+        val act = activity as? MainActivity
+        if (act != null) {
+            act.runOnUiThread { act.launchHcPermissions() }
+        } else {
             val data = JSObject()
             data.put("granted", false)
             call.resolve(data)
@@ -145,12 +153,12 @@ class RepCounPlugin : Plugin() {
                     data.put("bpm", Math.round(bpm))
                     data.put("at", samples.last().time.toEpochMilli())
                 } else {
-                    data.put("bpm", JSObject.NULL)
-                    data.put("at", JSObject.NULL)
+                    data.put("bpm", JSONObject.NULL)
+                    data.put("at", JSONObject.NULL)
                 }
             } catch (t: Throwable) {
-                data.put("bpm", JSObject.NULL)
-                data.put("at", JSObject.NULL)
+                data.put("bpm", JSONObject.NULL)
+                data.put("at", JSONObject.NULL)
             }
             call.resolve(data)
         }
@@ -175,6 +183,7 @@ class RepCounPlugin : Plugin() {
                     startZoneOffset = zone,
                     endTime = end,
                     endZoneOffset = zone,
+                    metadata = Metadata.manualEntry(),
                     exerciseType = exerciseTypeFor(exerciseId),
                     title = "RepCoun · $exerciseId"
                 )
@@ -183,14 +192,16 @@ class RepCounPlugin : Plugin() {
                     startZoneOffset = zone,
                     endTime = end,
                     endZoneOffset = zone,
-                    energy = Energy.calories(kcal)
+                    energy = Energy.calories(kcal),
+                    metadata = Metadata.manualEntry()
                 )
                 val total = TotalCaloriesBurnedRecord(
                     startTime = start,
                     startZoneOffset = zone,
                     endTime = end,
                     endZoneOffset = zone,
-                    energy = Energy.calories(kcal)
+                    energy = Energy.calories(kcal),
+                    metadata = Metadata.manualEntry()
                 )
 
                 val client = HealthConnectClient.getOrCreate(io())
@@ -213,10 +224,18 @@ class RepCounPlugin : Plugin() {
     @PluginMethod
     fun enterPip(call: PluginCall) {
         pipEnabled = true
-        val ok = (activity as? MainActivity)?.enterMiniMode() ?: false
-        val data = JSObject()
-        data.put("ok", ok)
-        call.resolve(data)
+        val act = activity as? MainActivity
+        if (act != null) {
+            act.runOnUiThread {
+                val data = JSObject()
+                data.put("ok", act.enterMiniMode())
+                call.resolve(data)
+            }
+        } else {
+            val data = JSObject()
+            data.put("ok", false)
+            call.resolve(data)
+        }
     }
 
     @PluginMethod
@@ -313,34 +332,10 @@ class RepCounPlugin : Plugin() {
 
         /**
          * Map RepCoun exercise ids to Health Connect exercise types.
-         * Constants are resolved reflectively so the code compiles against
-         * every version of the Health Connect library.
+         * RepCoun tracks bodyweight/calisthenics movements, which is a dedicated
+         * type in Health Connect (push-ups, squats, sit-ups, planks, …).
          */
-        private fun exerciseTypeFor(id: String): Int {
-            val constant = when (id) {
-                "pushup" -> "EXERCISE_PUSH_UPS"
-                "squat" -> "EXERCISE_SQUATS"
-                "situp" -> "EXERCISE_SIT_UPS"
-                "pullup" -> "EXERCISE_PULL_UPS"
-                "lunge" -> "EXERCISE_LUNGES"
-                "burpee" -> "EXERCISE_BURPEES"
-                "jumpingjack" -> "EXERCISE_JUMPING_JACK"
-                "bicepcurl" -> "EXERCISE_BICEP_CURLS"
-                "plank" -> "EXERCISE_PLANK"
-                "mountainclimber" -> "EXERCISE_MOUNTAIN_CLIMBER"
-                else -> "EXERCISE_GENERIC_WORKOUT"
-            }
-            return try {
-                val field = ExerciseSessionRecord::class.java.getField(constant)
-                field.getInt(null)
-            } catch (t: Throwable) {
-                try {
-                    val fallback = ExerciseSessionRecord::class.java.getField("EXERCISE_GENERIC_WORKOUT")
-                    fallback.getInt(null)
-                } catch (t2: Throwable) {
-                    0
-                }
-            }
-        }
+        private fun exerciseTypeFor(id: String): Int =
+            ExerciseSessionRecord.EXERCISE_TYPE_CALISTHENICS
     }
 }
