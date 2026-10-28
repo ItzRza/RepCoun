@@ -17,6 +17,7 @@
   "common.yes": "Evet",
   "common.no": "Hayır",
   "common.retry": "Tekrar dene",
+  "common.skip": "Atla",
   "common.loading": "Yükleniyor…",
   "common.sample": "Örnek",
   "onboard.title": "RepCoun'a Hoş Geldin",
@@ -92,6 +93,8 @@
   "workout.all_reps": "Tüm geçerli tekrarları sayar",
   "workout.cloud_on": "Bulut desteği açık",
   "workout.cloud_off": "Yerel YZ",
+  "workout.mini": "Mini mod",
+  "workout.mini_hint": "RepCoun diğer uygulamaların üstünde yüzer ve saymaya devam eder 📌",
   "rep.half": "Yarım tekrar — daha aşağı in",
   "rep.too_fast": "Çok hızlı — yavaşla",
   "rep.jitter": "Sabit dur",
@@ -109,6 +112,9 @@
   "progress.clear": "Geçmişi temizle",
   "progress.clear_q": "Tüm antrenman geçmişi silinsin mi? Bu işlem geri alınamaz.",
   "progress.export": "Verileri dışa aktar",
+  "progress.from_apps": "Diğer uygulamalardan",
+  "progress.from_apps_sub": "Diğer uygulamaların Health Connect ile senkronladığı antrenmanlar (Home Workout, Samsung Health, …)",
+  "progress.no_apps": "Henüz senkron antrenman yok",
   "lb.title": "Sıralama Tablosu",
   "lb.global": "Genel",
   "lb.local": "Yerel",
@@ -190,6 +196,5 @@
   "tip.press": "Barbi düz yukarı press et ve kollar tam kilitle bitir.",
   "tip.burpee": "Göğsünü yere değdir, yüksek zıpla, yumuşak in ve tekrarla.",
   "tip.mc": "Kalçanı düşük tutarken dizlerini göğsüne doğru hızlıca çek.",
-  "tip.bridge": "Topuklarınla it ve tepe pozisyonda bir saniye sık.",
-  "common.skip": "Atla"
+  "tip.bridge": "Topuklarınla it ve tepe pozisyonda bir saniye sık."
 }

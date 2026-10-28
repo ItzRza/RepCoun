@@ -17,6 +17,7 @@
   "common.yes": "نعم",
   "common.no": "لا",
   "common.retry": "حاول مجددًا",
+  "common.skip": "تخطي",
   "common.loading": "جارٍ التحميل…",
   "common.sample": "تجريبي",
   "onboard.title": "مرحبًا بك في RepCoun",
@@ -92,6 +93,8 @@
   "workout.all_reps": "يعدّ كل التكرارات الصحيحة",
   "workout.cloud_on": "المساعدة السحابية مفعّلة",
   "workout.cloud_off": "ذكاء اصطناعي محلي",
+  "workout.mini": "الوضع المصغر",
+  "workout.mini_hint": "يطفو RepCoun فوق التطبيقات الأخرى ويستمر في العد 📌",
   "rep.half": "تكرار ناقص — انزل أعمق",
   "rep.too_fast": "سريع جدًا — أبطئ",
   "rep.jitter": "حافظ على الثبات",
@@ -109,6 +112,9 @@
   "progress.clear": "مسح السجل",
   "progress.clear_q": "حذف كل سجل التمارين؟ لا يمكن التراجع عن هذا.",
   "progress.export": "تصدير البيانات",
+  "progress.from_apps": "من تطبيقات أخرى",
+  "progress.from_apps_sub": "تمارين زامنتها تطبيقات أخرى مع Health Connect (Home Workout, Samsung Health, …)",
+  "progress.no_apps": "لا تمارين متزامنة بعد",
   "lb.title": "لوحة المتصدرين",
   "lb.global": "عالمي",
   "lb.local": "محلي",
@@ -190,6 +196,5 @@
   "tip.press": "اضغط للأعلى بمستقيم وأنهِ مع تثبيت الذراعين بالكامل.",
   "tip.burpee": "صدرك إلى الأرض، اقفز عاليًا، هبط برفق وكرر.",
   "tip.mc": "اسحب ركبتيك نحو صدرك بسرعة مع إبقاء الوركين منخفضين.",
-  "tip.bridge": "ادفع بكعبيك واعقد العضلات في الأعلى لثانية واحدة.",
-  "common.skip": "تخطي"
+  "tip.bridge": "ادفع بكعبيك واعقد العضلات في الأعلى لثانية واحدة."
 }

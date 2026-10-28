@@ -1,7 +1,10 @@
 package com.repcoun.app
 
 import android.Manifest
+import android.app.PictureInPictureParams
+import android.os.Build
 import android.os.Bundle
+import android.util.Rational
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.health.connect.client.permission.PermissionController
@@ -16,7 +19,7 @@ class MainActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Custom plugin: camera permission + Health Connect
+        // Custom plugin: camera permission + Health Connect + mini mode
         registerPlugin(RepCounPlugin::class.java)
 
         // Camera runtime permission (needed by the WebView camera / getUserMedia)
@@ -48,5 +51,33 @@ class MainActivity : BridgeActivity() {
 
     fun launchHcPermissions() {
         hcLauncher?.launch(arrayOf())
+    }
+
+    /**
+     * Mini mode: shrink RepCoun to a floating window so it keeps showing the
+     * camera + rep counter on top of other workout apps (Home Workout, etc.).
+     */
+    fun enterMiniMode(): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val params = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(9, 16))
+                    .build()
+                enterPictureInPictureMode(params)
+                true
+            } else {
+                false
+            }
+        } catch (t: Throwable) {
+            false
+        }
+    }
+
+    /** Auto mini-mode when the user presses Home while a workout is running. */
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (RepCounPlugin.pipEnabled) {
+            enterMiniMode()
+        }
     }
 }

@@ -53,8 +53,27 @@ The APK is built **in the cloud** by GitHub Actions — your PC only needs Node.
   your live heart rate during workouts → more accurate calories.
 - **Redmi Watch 4** — enable Health Connect inside Mi Fitness (Profile → Settings → Health Connect).
   If Mi Fitness on your region doesn't sync, RepCoun simply falls back to MET-based calories.
-- **Home-workout apps** — Android allows only **one app to use the camera at a time**, so run
-  RepCoun as your tracker (it does the counting) instead of side-by-side with another camera app.
+- **Home-workout apps** — see the next section 👇
+
+## 🪟 Using RepCoun **together with other apps** (Home Workout, …)
+
+RepCoun was built for exactly this. Three ways, from simplest:
+
+1. **Mini mode (floating window)** 📌 — start a workout in RepCoun, then tap the **PiP button**
+   (the little picture-in-picture icon in the top bar) — *or just press the Home button*.
+   RepCoun shrinks to a small floating window with the **camera, skeleton and live rep counter**
+   and stays on top while you open Home Workout (or any app) underneath.
+   > Android only allows **one app to use the camera at a time** — that's an OS rule. So:
+   > use mini mode when the other app does **not** use the camera (most home-workout/timer apps
+   > don't). If the other app *does* use the camera, run RepCoun alone.
+
+2. **Split screen** — open Recent apps → hold RepCoun → split screen. RepCoun counts on one half,
+   your workout app runs on the other. (Enabled: `resizeableActivity`.)
+
+3. **Health Connect sync (data level)** — RepCoun *reads* workouts that other apps write to
+   Health Connect and shows them under **Progress → From other apps**. It also *writes* every
+   RepCoun session back, so all your apps see one combined history. The permission is requested
+   when you tap **Connect Health Connect** (Profile or Home) — you control it.
 
 ## 🧠 How "offline vs online" works
 

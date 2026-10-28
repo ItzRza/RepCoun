@@ -204,6 +204,67 @@ class RepCounPlugin : Plugin() {
         }
     }
 
+    @PluginMethod
+    fun setPipEnabled(call: PluginCall) {
+        pipEnabled = call.getBoolean("enabled") ?: false
+        call.resolve(JSObject())
+    }
+
+    @PluginMethod
+    fun enterPip(call: PluginCall) {
+        pipEnabled = true
+        val ok = (activity as? MainActivity)?.enterMiniMode() ?: false
+        val data = JSObject()
+        data.put("ok", ok)
+        call.resolve(data)
+    }
+
+    @PluginMethod
+    fun hcReadSessions(call: PluginCall) {
+        executor.execute {
+            val data = JSObject()
+            val arr = com.getcapacitor.JSArray()
+            var error: String? = null
+            try {
+                val days = (call.getInt("days") ?: 7).toLong()
+                val client = HealthConnectClient.getOrCreate(io())
+                val now = Instant.now()
+                val since = now.minus(Duration.ofDays(days))
+                val response = runBlocking {
+                    client.readRecords(
+                        ReadRecordsRequest(
+                            recordType = ExerciseSessionRecord::class,
+                            timeRangeFilter = TimeRangeFilter.between(since, now)
+                        )
+                    )
+                }
+                for (s in response.records) {
+                    val o = JSObject()
+                    o.put("title", s.title ?: "")
+                    o.put("startMs", s.startTime.toEpochMilli())
+                    o.put("endMs", s.endTime.toEpochMilli())
+                    o.put("durationSec", Duration.between(s.startTime, s.endTime).seconds)
+                    o.put("app", appLabelFor(s.metadata.dataOrigin.packageName))
+                    o.put("pkg", s.metadata.dataOrigin.packageName)
+                    arr.put(o)
+                }
+            } catch (t: Throwable) {
+                error = t.message ?: "read failed"
+            }
+            data.put("sessions", arr)
+            data.put("ok", error == null)
+            if (error != null) data.put("error", error)
+            call.resolve(data)
+        }
+    }
+
+    private fun appLabelFor(pkg: String): String = try {
+        val pm = io().packageManager
+        pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+    } catch (t: Throwable) {
+        pkg
+    }
+
     /* ------------------------------ helpers ------------------------------ */
 
     override fun handleOnResume() {
@@ -217,9 +278,14 @@ class RepCounPlugin : Plugin() {
         @Volatile
         private var hcCall: PluginCall? = null
 
+        /** true while a workout is running — enables auto mini-mode on Home press */
+        @Volatile
+        var pipEnabled: Boolean = false
+
         val HC_PERMISSIONS: Set<String> = setOf(
             HealthPermission.getReadPermission(HeartRateRecord::class),
             HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class),
             HealthPermission.getWritePermission(ExerciseSessionRecord::class),
             HealthPermission.getWritePermission(ActiveCaloriesBurnedRecord::class),
             HealthPermission.getWritePermission(TotalCaloriesBurnedRecord::class)

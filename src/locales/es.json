@@ -17,6 +17,7 @@
   "common.yes": "Sí",
   "common.no": "No",
   "common.retry": "Reintentar",
+  "common.skip": "Omitir",
   "common.loading": "Cargando…",
   "common.sample": "Ejemplo",
   "onboard.title": "Bienvenido a RepCoun",
@@ -92,6 +93,8 @@
   "workout.all_reps": "Cuenta todas las buenas repeticiones",
   "workout.cloud_on": "Asistencia en la nube activada",
   "workout.cloud_off": "IA local",
+  "workout.mini": "Modo mini",
+  "workout.mini_hint": "RepCoun flota sobre otras apps y sigue contando 📌",
   "rep.half": "Media repetición — baja más",
   "rep.too_fast": "Demasiado rápido — baja el ritmo",
   "rep.jitter": "Mantente estable",
@@ -109,6 +112,9 @@
   "progress.clear": "Borrar historial",
   "progress.clear_q": "¿Eliminar todo el historial de entrenamientos? Esto no se puede deshacer.",
   "progress.export": "Exportar datos",
+  "progress.from_apps": "De otras apps",
+  "progress.from_apps_sub": "Entrenamientos que otras apps sincronizaron con Health Connect (Home Workout, Samsung Health, …)",
+  "progress.no_apps": "Aún no hay entrenamientos sincronizados",
   "lb.title": "Clasificación",
   "lb.global": "Global",
   "lb.local": "Local",
@@ -190,6 +196,5 @@
   "tip.press": "Presiona recto por encima de la cabeza y termina con los brazos totalmente bloqueados.",
   "tip.burpee": "Pecho al suelo, salta alto, aterriza suave y repite.",
   "tip.mc": "Lleva las rodillas al pecho rápidamente manteniendo las caderas bajas.",
-  "tip.bridge": "Empuja con los talones y aprieta arriba durante un segundo.",
-  "common.skip": "Omitir"
+  "tip.bridge": "Empuja con los talones y aprieta arriba durante un segundo."
 }

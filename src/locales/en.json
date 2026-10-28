@@ -98,6 +98,8 @@
   "workout.all_reps": "Counts all good reps",
   "workout.cloud_on": "Cloud assist on",
   "workout.cloud_off": "Local AI",
+  "workout.mini": "Mini mode",
+  "workout.mini_hint": "RepCoun floats above other apps and keeps counting 📌",
 
   "rep.half": "Half rep — go deeper",
   "rep.too_fast": "Too fast — slow down",
@@ -117,6 +119,9 @@
   "progress.clear": "Clear history",
   "progress.clear_q": "Delete all workout history? This cannot be undone.",
   "progress.export": "Export data",
+  "progress.from_apps": "From other apps",
+  "progress.from_apps_sub": "Workouts other apps synced to Health Connect (Home Workout, Samsung Health, …)",
+  "progress.no_apps": "No synced workouts yet",
 
   "lb.title": "Leaderboard",
   "lb.global": "Global",

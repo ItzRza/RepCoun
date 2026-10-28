@@ -17,6 +17,7 @@
   "common.yes": "Sim",
   "common.no": "Não",
   "common.retry": "Tentar novamente",
+  "common.skip": "Pular",
   "common.loading": "Carregando…",
   "common.sample": "Exemplo",
   "onboard.title": "Bem-vindo ao RepCoun",
@@ -92,6 +93,8 @@
   "workout.all_reps": "Conta todas as repetições boas",
   "workout.cloud_on": "Assistência na nuvem ativada",
   "workout.cloud_off": "IA local",
+  "workout.mini": "Modo mini",
+  "workout.mini_hint": "RepCoun flutua sobre outros apps e continua contando 📌",
   "rep.half": "Meia repetição — desça mais",
   "rep.too_fast": "Rápido demais — mais devagar",
   "rep.jitter": "Fique parado",
@@ -109,6 +112,9 @@
   "progress.clear": "Limpar histórico",
   "progress.clear_q": "Excluir todo o histórico de treinos? Isso não pode ser desfeito.",
   "progress.export": "Exportar dados",
+  "progress.from_apps": "De outros apps",
+  "progress.from_apps_sub": "Treinos que outros apps sincronizaram com o Health Connect (Home Workout, Samsung Health, …)",
+  "progress.no_apps": "Nenhum treino sincronizado ainda",
   "lb.title": "Ranking",
   "lb.global": "Global",
   "lb.local": "Local",
@@ -190,6 +196,5 @@
   "tip.press": "Empurre reto para cima e termine com os braços totalmente travados.",
   "tip.burpee": "Peito no chão, salte alto, aterrisse suave e repita.",
   "tip.mc": "Traga os joelhos ao peito rapidamente mantendo os quadris baixos.",
-  "tip.bridge": "Empurre pelos calcanhares e contraia no topo por um segundo.",
-  "common.skip": "Pular"
+  "tip.bridge": "Empurre pelos calcanhares e contraia no topo por um segundo."
 }

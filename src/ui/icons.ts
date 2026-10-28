@@ -35,4 +35,5 @@ export const icons = {
   wifi_off: svg('<path d="M2 3l20 18"/><path d="M5 12.5a10 10 0 0 1 4-2.4"/><path d="M12 18h.01"/><path d="M8.5 16a5 5 0 0 1 7-.4"/><path d="M2.5 9a15 15 0 0 1 5-3.2"/><path d="M13 5.7A15 15 0 0 1 21.5 9"/>'),
   crown: svg('<path d="M4 17h16"/><path d="M4 17 3 8l5 3.5L12 5l4 6.5L21 8l-1 9z"/>'),
   edit: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>'),
+  pip: svg('<rect x="3" y="5" width="18" height="14" rx="2.5"/><rect x="11.5" y="11.5" width="7" height="5.5" rx="1.5" fill="currentColor" stroke="none"/>'),
 };

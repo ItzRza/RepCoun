@@ -17,6 +17,7 @@
   "common.yes": "Ja",
   "common.no": "Nein",
   "common.retry": "Erneut versuchen",
+  "common.skip": "Überspringen",
   "common.loading": "Lädt…",
   "common.sample": "Beispiel",
   "onboard.title": "Willkommen bei RepCoun",
@@ -92,6 +93,8 @@
   "workout.all_reps": "Zählt alle guten Wiederholungen",
   "workout.cloud_on": "Cloud-Unterstützung an",
   "workout.cloud_off": "Lokale KI",
+  "workout.mini": "Mini-Modus",
+  "workout.mini_hint": "RepCoun schwebt über anderen Apps und zählt weiter 📌",
   "rep.half": "Halbe Wdh. — geh tiefer",
   "rep.too_fast": "Zu schnell — langsamer werden",
   "rep.jitter": "Bleib ruhig",
@@ -109,6 +112,9 @@
   "progress.clear": "Verlauf löschen",
   "progress.clear_q": "Gesamten Workout-Verlauf löschen? Dies kann nicht rückgängig gemacht werden.",
   "progress.export": "Daten exportieren",
+  "progress.from_apps": "Von anderen Apps",
+  "progress.from_apps_sub": "Trainings, die andere Apps mit Health Connect synchronisiert haben (Home Workout, Samsung Health, …)",
+  "progress.no_apps": "Noch keine synchronisierten Trainings",
   "lb.title": "Bestenliste",
   "lb.global": "Global",
   "lb.local": "Lokal",
@@ -190,6 +196,5 @@
   "tip.press": "Drücke gerade nach oben und beende mit vollständig gestreckten Armen.",
   "tip.burpee": "Brust zum Boden, spring hoch, lande weich und wiederhole.",
   "tip.mc": "Ziehe die Knie schnell zur Brust, während die Hüften tief bleiben.",
-  "tip.bridge": "Drücke über die Ferse und halte oben eine Sekunde lang an.",
-  "common.skip": "Überspringen"
+  "tip.bridge": "Drücke über die Ferse und halte oben eine Sekunde lang an."
 }

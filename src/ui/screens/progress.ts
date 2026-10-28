@@ -6,6 +6,7 @@ import { fmt, fmtDuration, esc } from "../dom";
 import { icons } from "../icons";
 import { store, lastNDays, totals, personalRecords } from "../../data/store";
 import { EXERCISE_MAP, AUTO } from "../../engine/exercises";
+import { health } from "../../services/health";
 
 export function renderProgress(root: HTMLElement, ctx: Ctx) {
   const tot = totals();
@@ -69,6 +70,8 @@ export function renderProgress(root: HTMLElement, ctx: Ctx) {
         : ""
     }
 
+    <div id="apps-sync"></div>
+
     <div class="section-title"><div class="h2">${t("progress.history")}</div></div>
     ${
       sessions.length
@@ -95,6 +98,36 @@ export function renderProgress(root: HTMLElement, ctx: Ctx) {
       ctx.startWorkout();
     }
   }
+
+  // ---- workouts synced from OTHER apps via Health Connect ----
+  void (async () => {
+    const box = root.querySelector("#apps-sync");
+    if (!box || !health.isNative()) return;
+    const sessions = await health.readSessions(7);
+    if (!sessions.length) return;
+    box.innerHTML = `
+      <div class="section-title">
+        <div class="h2">${t("progress.from_apps")}</div>
+        <span class="badge blue">${icons.heart}Health Connect</span>
+      </div>
+      <div class="tiny" style="margin:0 2px 10px">${t("progress.from_apps_sub")}</div>
+      <div class="list">
+        ${sessions
+          .slice(0, 8)
+          .map(
+            (s) => `
+          <div class="list-row" style="cursor:default">
+            <div class="emoji">📱</div>
+            <div style="flex:1;min-width:0">
+              <div class="h3" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title || s.app)}</div>
+              <div class="tiny">${esc(s.app)} · ${new Date(s.startMs).toLocaleDateString()}</div>
+            </div>
+            <div class="tiny" style="font-weight:700">${fmtDuration(s.durationSec)}</div>
+          </div>`
+          )
+          .join("")}
+      </div>`;
+  })();
 
   function confirmSheet() {
     ctx.openSheet(

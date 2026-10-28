@@ -49,6 +49,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
         <button class="icon-btn" data-act="close">${icons.close}</button>
         <div style="font-weight:800;letter-spacing:-0.01em">RepCoun</div>
         <div class="row tight">
+          <button class="icon-btn ${health.isNative() ? "" : "hidden"}" data-act="pip" title="Mini mode">${icons.pip}</button>
           <button class="icon-btn" data-act="flip">${icons.camera_flip}</button>
           <button class="icon-btn" data-act="help">${icons.info}</button>
         </div>
@@ -464,6 +465,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     running = true;
     void loopTick();
     startTick();
+    void health.setPipEnabled(true);
 
     if (health.isNative()) {
       hrMonitor = new HrMonitor((bpm) => {
@@ -475,9 +477,16 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     }
   }
 
+  async function enterMiniMode() {
+    const ok = await health.enterMiniMode();
+    if (ok) toast(t("workout.mini_hint"), "info");
+    else toast(t("profile.hc_web"), "info");
+  }
+
   function close() {
     closed = true;
     running = false;
+    void health.setPipEnabled(false);
     if (loopTimer) window.clearTimeout(loopTimer);
     if (tickTimer) window.clearInterval(tickTimer);
     document.removeEventListener("visibilitychange", onVisibility);
@@ -497,6 +506,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     else if (act === "finish") finishWorkout();
     else if (act === "help") helpSheet();
     else if (act === "flip") void flipCamera();
+    else if (act === "pip") void enterMiniMode();
   });
 
   window.addEventListener("resize", resizeCanvas);

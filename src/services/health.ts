@@ -18,6 +18,7 @@ type Plugin = {
   hcRequestPermissions(): Promise<{ granted: boolean }>;
   hcStatus(): Promise<{ granted: boolean }>;
   hcReadHeartRate(): Promise<{ bpm: number | null; at: number | null }>;
+  hcReadSessions(o: { days: number }): Promise<{ sessions: HcSession[]; ok: boolean; error?: string }>;
   hcWriteSession(o: {
     startMs: number;
     endMs: number;
@@ -26,7 +27,18 @@ type Plugin = {
     reps: number;
     durationSec: number;
   }): Promise<{ ok: boolean }>;
+  setPipEnabled(o: { enabled: boolean }): Promise<void>;
+  enterPip(): Promise<{ ok: boolean }>;
 };
+
+export interface HcSession {
+  title: string;
+  startMs: number;
+  endMs: number;
+  durationSec: number;
+  app: string;
+  pkg: string;
+}
 
 function plugin(): Plugin | null {
   const cap = (window as any).Capacitor;
@@ -100,6 +112,41 @@ export const health = {
         reps: s.reps,
         durationSec: s.durationSec,
       });
+      return !!r.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  /** Sessions written by OTHER apps (Home Workout, Samsung Health, …) into Health Connect. */
+  async readSessions(days = 7): Promise<HcSession[]> {
+    const p = plugin();
+    if (!p) return [];
+    try {
+      const r = await p.hcReadSessions({ days });
+      if (!r?.ok || !Array.isArray(r.sessions)) return [];
+      return r.sessions.sort((a, b) => b.startMs - a.startMs).slice(0, 20);
+    } catch {
+      return [];
+    }
+  },
+
+  /** Mini mode: allow RepCoun to shrink to a floating window over other apps. */
+  async setPipEnabled(enabled: boolean): Promise<void> {
+    const p = plugin();
+    if (!p) return;
+    try {
+      await p.setPipEnabled({ enabled });
+    } catch {
+      /* ignore */
+    }
+  },
+
+  async enterMiniMode(): Promise<boolean> {
+    const p = plugin();
+    if (!p) return false;
+    try {
+      const r = await p.enterPip();
       return !!r.ok;
     } catch {
       return false;
