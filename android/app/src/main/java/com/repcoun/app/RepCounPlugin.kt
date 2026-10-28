@@ -93,12 +93,8 @@ class RepCounPlugin : Plugin() {
 
     private fun allGranted(): Boolean = try {
         val client = HealthConnectClient.getOrCreate(io())
-        HC_PERMISSIONS.all { perm ->
-            runBlocking {
-                client.permissionController.checkSelfPermission(perm) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-            }
-        }
+        val granted = runBlocking { client.permissionController.getGrantedPermissions() }
+        HC_PERMISSIONS.all { it in granted }
     } catch (t: Throwable) {
         false
     }
@@ -149,7 +145,7 @@ class RepCounPlugin : Plugin() {
                     .sortedBy { it.time }
                 if (samples.isNotEmpty()) {
                     val recent = samples.takeLast(8)
-                    val bpm = recent.map { it.bpm }.average()
+                    val bpm = recent.map { it.beatsPerMinute }.average()
                     data.put("bpm", Math.round(bpm))
                     data.put("at", samples.last().time.toEpochMilli())
                 } else {
