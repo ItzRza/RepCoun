@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RepCoun</string>
+    <string name="title_activity_main">RepCoun</string>
+    <string name="package_name">com.repcoun.app</string>
+    <string name="custom_url_scheme">com.repcoun.app</string>
+</resources>

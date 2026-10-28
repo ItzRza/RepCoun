@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-10-28",
+  "exercises": {
+    "pushup": { "top": 158, "bottom": 92, "met": 8.0, "kcalPerRep70": 0.36, "minBottomMs": 220, "minRepMs": 650 },
+    "squat": { "top": 160, "bottom": 103, "met": 5.5, "kcalPerRep70": 0.33, "minBottomMs": 180, "minRepMs": 620 },
+    "situp": { "top": 138, "bottom": 86, "met": 4.0, "kcalPerRep70": 0.26, "minBottomMs": 200, "minRepMs": 750 },
+    "pullup": { "top": 155, "bottom": 92, "met": 8.5, "kcalPerRep70": 0.52, "minBottomMs": 200, "minRepMs": 800 },
+    "jumpingjack": { "top": 60, "bottom": 150, "met": 8.5, "kcalPerRep70": 0.28, "minBottomMs": 140, "minRepMs": 480 },
+    "lunge": { "top": 158, "bottom": 105, "met": 4.5, "kcalPerRep70": 0.32, "minBottomMs": 200, "minRepMs": 750 },
+    "plank": { "met": 3.5, "kcalPerRep70": 0.1 },
+    "bicepcurl": { "top": 155, "bottom": 55, "met": 3.5, "kcalPerRep70": 0.15, "minBottomMs": 160, "minRepMs": 600 },
+    "shoulderpress": { "top": 96, "bottom": 160, "met": 5.0, "kcalPerRep70": 0.2, "minBottomMs": 160, "minRepMs": 650 },
+    "burpee": { "top": 48, "bottom": 62, "met": 9.5, "kcalPerRep70": 0.95, "minBottomMs": 300, "minRepMs": 1600 },
+    "mountainclimber": { "top": 152, "bottom": 96, "met": 8.0, "kcalPerRep70": 0.22, "minBottomMs": 120, "minRepMs": 400 },
+    "glutebridge": { "top": 104, "bottom": 152, "met": 3.0, "kcalPerRep70": 0.22, "minBottomMs": 180, "minRepMs": 700 }
+  }
+}
