@@ -1,4 +1,4 @@
-/** Leaderboard — Rep Rank league with global/local tabs (offline demo season + API-ready). */
+/** Leaderboard — Rep Rank league with global/local tabs (only real data + API-ready). */
 
 import type { Ctx } from "../../app";
 import { t } from "../../i18n/i18n";
@@ -32,7 +32,7 @@ export function renderLeaderboard(root: HTMLElement, ctx: Ctx) {
           <div style="height:100%;width:${Math.round(rank.progress * 100)}%;background:var(--grad);border-radius:99px;transition:width .5s"></div>
         </div>
         <div class="tiny">${rank.nextLabel ? t("home.next_rank", { rank: rank.nextLabel }) : "MAX RANK 🏆"}</div>
-        ${myPos ? `<div class="badge violet" style="margin-top:12px">${icons.crown}#${myPos} ${tab === "global" ? t("lb.global") : t("lb.local")}</div>` : ""}
+        ${tab === "global" && entries.length > 1 && myPos ? `<div class="badge violet" style="margin-top:12px">${icons.crown}#${myPos} ${t("lb.global")}</div>` : ""}
       </div>
 
       <div class="seg" style="margin-top:16px">
@@ -40,7 +40,7 @@ export function renderLeaderboard(root: HTMLElement, ctx: Ctx) {
         <button class="${tab === "local" ? "active" : ""}" data-tab="local">${icons.chart} ${t("lb.local")}</button>
       </div>
 
-      <div class="tiny" style="margin:12px 2px 10px">${t("lb.sample_note")}</div>
+      ${tab === "global" ? `<div class="tiny" style="margin:12px 2px 10px">${t("lb.global_empty")}</div>` : ""}
 
       <div class="list" id="lb-list">
         ${entries
@@ -59,7 +59,7 @@ export function renderLeaderboard(root: HTMLElement, ctx: Ctx) {
         <div class="avatar" style="background:${color}">${e.me ? "⭐" : initials}</div>
         <div style="flex:1;min-width:0">
           <div class="h3" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}${e.me ? ` <span class="badge violet" style="font-size:9px;padding:2px 7px">YOU</span>` : ""}</div>
-          <div class="tiny">${e.country}${e.demo ? ` · ${t("common.sample")}` : ""}</div>
+          <div class="tiny">${e.country}</div>
         </div>
         <div style="text-align:right">
           <div class="h3">${fmt(e.reps)}</div>

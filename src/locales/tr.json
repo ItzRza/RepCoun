@@ -121,6 +121,7 @@
   "lb.season": "Sezon 1",
   "lb.your_rank": "Rütben",
   "lb.sample_note": "Örnek sezon gösteriliyor — küresel olarak yarışmak için ayarlardan bir sıralama API'si bağla.",
+  "lb.global_empty": "Bir sıralama sunucusu bağlanana kadar (Profil → Gelişmiş) yalnızca siz görünürsünüz.",
   "lb.connect_api": "API bağla",
   "lb.week": "Hafta",
   "lb.month": "Ay",
@@ -201,7 +202,7 @@
   "profile.advanced": "Gelişmiş",
   "profile.advanced_desc": "RepCoun tamamen çevrimdışı çalışır. Bunlar güç kullanıcılar için isteğe bağlı ekstralar.",
   "profile.cloud_assist_desc": "Egzersizi görmek için kendi yapay zeka sunucunuza kamera karesi gönderir. Olmadan da çalışır.",
-  "profile.lbapi_desc": "Kendi sıralama sunucunuza bağlanın. Boş bırakırsanız çevrimdışı demo sezon kullanılır.",
+  "profile.lbapi_desc": "Kendi sıralama sunucunuza bağlanın. Bağlanana kadar yalnızca siz görünürsünüz.",
   "profile.track_sync_desc": "Her RepCoun antrenmanını Health Connect’e kaydedin; saatiniz ve diğer sağlık uygulamalarınız da görsün.",
   "profile.hc_update": "Health Connect güncelleme gerektiriyor",
   "profile.hc_update_btn": "Güncelle"

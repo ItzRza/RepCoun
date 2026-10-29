@@ -15,6 +15,7 @@ export interface HcAvailability {
 
 type Plugin = {
   requestCamera(): Promise<{ granted: boolean }>;
+  appVersion(): Promise<{ version?: string; build?: number }>;
   hcAvailability(): Promise<{ available: boolean; updateRequired?: boolean; status?: number }>;
   hcRequestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable" }>;
   hcOpenStore(): Promise<void>;
@@ -53,8 +54,38 @@ function plugin(): Plugin | null {
 }
 
 export const health = {
+  /**
+   * True inside the APK (and only there).
+   * The Capacitor platform is the ground truth: relying on the plugin object
+   * alone used to wrongly report "Available in the Android app" on a phone
+   * whenever the plugin proxy was momentarily missing.
+   */
   isNative(): boolean {
+    const cap = (window as any).Capacitor;
+    try {
+      if (typeof cap?.getPlatform === "function" && cap.getPlatform() === "android") return true;
+    } catch {
+      /* fall through */
+    }
     return plugin() !== null;
+  },
+
+  /** Whether the native RepCoun plugin object is reachable (diagnostic). */
+  bridgeOk(): boolean {
+    return plugin() !== null;
+  },
+
+  /** Version + build number from the APK (e.g. "1.0.0+b12"). Null in a browser. */
+  async appVersion(): Promise<{ version: string; build: number } | null> {
+    const p = plugin();
+    if (!p) return null;
+    try {
+      const r = await p.appVersion();
+      if (r?.version) return { version: r.version, build: r.build ?? 0 };
+      return null;
+    } catch {
+      return null;
+    }
   },
 
   async cameraPermission(): Promise<boolean> {
@@ -69,8 +100,11 @@ export const health = {
   },
 
   async availability(): Promise<HcAvailability> {
+    // In the APK we are always "native": a missing plugin means a broken
+    // bridge, not the web app — so the phone never sees "hc_web".
+    if (!this.isNative()) return { native: false, available: false, granted: false, updateRequired: false };
     const p = plugin();
-    if (!p) return { native: false, available: false, granted: false, updateRequired: false };
+    if (!p) return { native: true, available: false, granted: false, updateRequired: false };
     try {
       const [{ available, updateRequired }, { granted }] = await Promise.all([
         p.hcAvailability(),
@@ -88,8 +122,9 @@ export const health = {
    *         "unavailable" = this device has no Health Connect at all.
    */
   async requestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable" }> {
+    if (!this.isNative()) return { granted: false, reason: "unavailable" };
     const p = plugin();
-    if (!p) return { granted: false, reason: "unavailable" };
+    if (!p) return { granted: false };
     try {
       const r = await p.hcRequestPermissions();
       return { granted: !!r.granted, reason: r.reason };

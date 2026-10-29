@@ -121,6 +121,7 @@
   "lb.season": "Temporada 1",
   "lb.your_rank": "Seu rank",
   "lb.sample_note": "Temporada de exemplo exibida — conecte uma API de ranking nos ajustes para competir globalmente.",
+  "lb.global_empty": "Apenas você aparece até que um servidor de ranking seja conectado (Perfil → Avançado).",
   "lb.connect_api": "Conectar API",
   "lb.week": "Semana",
   "lb.month": "Mês",
@@ -201,7 +202,7 @@
   "profile.advanced": "Avançado",
   "profile.advanced_desc": "O RepCoun funciona totalmente offline. Estes são extras opcionais para usuários avançados.",
   "profile.cloud_assist_desc": "Envia um quadro da câmera para seu próprio servidor de IA para ajudar a reconhecer o exercício. Também funciona sem ele.",
-  "profile.lbapi_desc": "Conecte seu próprio servidor de classificação. Deixe vazio para a temporada de demonstração offline.",
+  "profile.lbapi_desc": "Conecte seu próprio servidor de ranking. Até ele ser conectado, apenas você aparece.",
   "profile.track_sync_desc": "Salve cada treino do RepCoun no Health Connect para que seu relógio e outros apps de saúde também vejam.",
   "profile.hc_update": "O Health Connect precisa de uma atualização",
   "profile.hc_update_btn": "Atualizar"

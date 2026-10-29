@@ -8,8 +8,11 @@ android {
         applicationId "com.repcoun.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // CI passes -PciBuild=<run number> → versionName "1.0.0+b12" so the
+        // exact build is visible in Profile → About (and in bug reports).
+        def ciBuild = (project.findProperty('ciBuild') ?: '0').toString()
+        versionCode = 1 + ciBuild.toInteger()
+        versionName = "1.0.0+b${ciBuild}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -24,7 +27,26 @@ android {
     kotlinOptions {
         jvmTarget = '21'
     }
+    // Stable debug signing: the keystore is COMMITTED to the repo so every CI
+    // run produces the same signature — without this, each fresh Actions runner
+    // generates a new ~/.android/debug.keystore and the new APK can never
+    // install over the old one ("App not installed").
+    signingConfigs {
+        debug {
+            storeFile file('repcoun-debug.p12')
+            storeType 'PKCS12'
+            storePassword 'repcoun'
+            keyAlias 'repcoun'
+            keyPassword 'repcoun'
+        }
+    }
+    buildFeatures {
+        buildConfig true
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

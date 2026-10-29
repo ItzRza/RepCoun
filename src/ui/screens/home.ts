@@ -74,7 +74,7 @@ export function renderHome(root: HTMLElement, ctx: Ctx) {
       </div>
     </div>
 
-    <div class="section-title"><div class="h2">${t("home.rank")}</div><span class="tiny" data-a="lb" style="cursor:pointer">${t("home.season_rank", { pos: seasonPos(tot.reps) })}</span></div>
+    <div class="section-title"><div class="h2">${t("home.rank")}</div><span class="tiny" data-a="lb" style="cursor:pointer">${t("lb.title")} ›</span></div>
     <div class="card" data-a="lb" style="cursor:pointer">
       <div class="row" style="gap:14px">
         <div class="rank-gem" style="width:60px;height:60px;font-size:28px;border-radius:18px;margin:0">${rank.tier.gem}</div>
@@ -197,12 +197,6 @@ export function renderHome(root: HTMLElement, ctx: Ctx) {
   });
 
   onConnectionChange(() => ctx.rerender());
-}
-
-function seasonPos(myReps: number): number {
-  // demo season position estimate used on home card
-  const demo = [34820, 29846, 26810, 26740, 24950, 21384, 18920, 15210, 12860, 9840, 7420, 5130];
-  return demo.filter((r) => r > myReps).length + 1;
 }
 
 function ringSvg(pct: number): string {

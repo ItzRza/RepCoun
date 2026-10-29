@@ -1,4 +1,4 @@
-/** Rep Ranks (RepCoun league system) + offline demo leaderboard. */
+/** Rep Ranks (RepCoun league system) + leaderboard (you + your own stats — no fake players). */
 
 import { store } from "./store";
 
@@ -30,7 +30,6 @@ export interface Rank {
   progress: number; // 0..1 inside current division
   nextLabel: string | null;
   nextAt: number | null;
-  globalRank: number; // demo season position
 }
 
 export function rankOf(totalReps: number): Rank {
@@ -81,7 +80,6 @@ export function rankOf(totalReps: number): Rank {
     progress,
     nextLabel,
     nextAt: division < 3 ? divEnd : nextTier?.min ?? null,
-    globalRank: 0,
   };
 }
 
@@ -94,35 +92,17 @@ function tierT(key: string): string {
   return resolver(key);
 }
 
-/* ------------------------- offline demo season -------------------------- */
+/* ------------------------------ leaderboard ----------------------------- */
 
 export interface LbEntry {
   name: string;
   reps: number;
   country: string;
-  demo?: boolean;
   me?: boolean;
 }
 
-/** Sample season used when no leaderboard backend is connected (works offline). */
-const DEMO_SEASON: LbEntry[] = [
-  { name: "Ethan Carter", reps: 34820, country: "🇺🇸", demo: true },
-  { name: "Vladia Shun", reps: 29846, country: "🇸🇬", demo: true },
-  { name: "Ako Tanaka", reps: 26810, country: "🇯🇵", demo: true },
-  { name: "Sofia Hernandez", reps: 26740, country: "🇪🇸", demo: true },
-  { name: "Hana Kim", reps: 24950, country: "🇰🇷", demo: true },
-  { name: "Luca Rossi", reps: 21384, country: "🇮🇹", demo: true },
-  { name: "Emma Müller", reps: 18920, country: "🇩🇪", demo: true },
-  { name: "Olivier Dubois", reps: 15210, country: "🇫🇷", demo: true },
-  { name: "Ana Souza", reps: 12860, country: "🇧🇷", demo: true },
-  { name: "Mert Yıldız", reps: 9840, country: "🇹🇷", demo: true },
-  { name: "Priya Patel", reps: 7420, country: "🇮🇳", demo: true },
-  { name: "Noah Becker", reps: 5130, country: "🇨🇭", demo: true },
-];
-
 export function localSeason(myName: string, myReps: number, mode: "global" | "local"): LbEntry[] {
   const me: LbEntry = { name: myName || "You", reps: myReps, country: "⭐", me: true };
-  let list: LbEntry[];
   if (mode === "local") {
     // "Local" = your own device history split into your recent weeks vs all-time
     const sessions = store.getSessions();
@@ -133,13 +113,13 @@ export function localSeason(myName: string, myReps: number, mode: "global" | "lo
     const month = sessions
       .filter((s) => now - s.startedAt < 30 * 864e5)
       .reduce((a, s) => a + s.reps, 0);
-    list = [
-      { name: "This Week", reps: week, country: "📅", demo: true },
-      { name: "This Month", reps: month, country: "🗓️", demo: true },
+    return [
+      { name: "This Week", reps: week, country: "📅" },
+      { name: "This Month", reps: month, country: "🗓️" },
       { name: "All Time", reps: myReps, country: "⭐", me: true },
-    ];
-    return list.sort((a, b) => b.reps - a.reps);
+    ].sort((a, b) => b.reps - a.reps);
   }
-  list = [...DEMO_SEASON, me].sort((a, b) => b.reps - a.reps);
-  return list;
+  // Global: ONLY you. Real opponents appear once a leaderboard server is
+  // connected (Profile → Advanced) — never show made-up players.
+  return [me];
 }

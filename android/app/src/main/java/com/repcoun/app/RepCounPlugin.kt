@@ -64,6 +64,16 @@ class RepCounPlugin : Plugin() {
         }
     }
 
+    /* ----------------------------- app info ----------------------------- */
+
+    @PluginMethod
+    fun appVersion(call: PluginCall) {
+        val data = JSObject()
+        data.put("version", BuildConfig.VERSION_NAME)
+        data.put("build", BuildConfig.VERSION_CODE)
+        call.resolve(data)
+    }
+
     /* -------------------------- Health Connect --------------------------- */
 
     @PluginMethod

@@ -121,6 +121,7 @@
   "lb.season": "Season 1",
   "lb.your_rank": "Your rank",
   "lb.sample_note": "Sample season shown — connect a leaderboard API in settings to compete globally.",
+  "lb.global_empty": "Only you are shown until a leaderboard server is connected (Profile → Advanced).",
   "lb.connect_api": "Connect API",
   "lb.week": "Week",
   "lb.month": "Month",
@@ -201,7 +202,7 @@
   "profile.advanced": "Advanced",
   "profile.advanced_desc": "RepCoun works fully offline. These are optional extras for power users.",
   "profile.cloud_assist_desc": "Send a camera frame to your own AI server for help spotting the exercise. Works without it too.",
-  "profile.lbapi_desc": "Connect your own leaderboard server. Leave empty for the offline demo season.",
+  "profile.lbapi_desc": "Connect your own leaderboard server. Until it's connected, only you are shown.",
   "profile.track_sync_desc": "Save each RepCoun workout into Health Connect so your watch and other health apps see it too.",
   "profile.hc_update": "Health Connect needs an update",
   "profile.hc_update_btn": "Update"

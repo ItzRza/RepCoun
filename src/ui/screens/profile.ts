@@ -84,11 +84,20 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
         <div class="emoji">${icons.info}</div>
         <div style="flex:1">
           <div class="h3">${t("profile.about")}</div>
-          <div class="tiny">RepCoun · ${t("profile.version")} 1.0.0</div>
+          <div class="tiny" id="about-line">RepCoun · ${t("profile.version")} 1.0.0</div>
         </div>
       </div>
     </div>
   `;
+
+  // Fill in the real build (e.g. "1.0.0+b12 · android · bridge ok") — this
+  // line is what we ask users to screenshot when reporting a problem.
+  void health.appVersion().then((v) => {
+    const el = root.querySelector("#about-line") as HTMLElement | null;
+    if (!el) return;
+    const ver = v?.version ?? "1.0.0";
+    el.textContent = `RepCoun · ${t("profile.version")} ${ver} · ${health.isNative() ? "android" : "web"} · bridge ${health.bridgeOk() ? "ok" : "missing"}`;
+  });
 
   root.addEventListener("click", onClick);
   function onClick(e: Event) {
@@ -131,7 +140,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       case "trackToHc": return ctx.saveSettings({ trackToHc: !s.trackToHc });
       case "hc": return void connectHc();
       case "cloud": return cloudSheet();
-      case "lbapi": return ctx.toast(t("lb.sample_note"), "info");
+      case "lbapi": return ctx.toast(t("lb.global_empty"), "info");
       case "clear": return clearSheet();
     }
   }

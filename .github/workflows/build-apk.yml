@@ -46,7 +46,7 @@ jobs:
           set -o pipefail
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle.log
+          ./gradlew assembleDebug --no-daemon --stacktrace -PciBuild=${{ github.run_number }} 2>&1 | tee ../gradle.log
 
       - name: Surface Gradle errors
         if: failure()

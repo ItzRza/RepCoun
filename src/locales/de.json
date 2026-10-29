@@ -121,6 +121,7 @@
   "lb.season": "Saison 1",
   "lb.your_rank": "Dein Rang",
   "lb.sample_note": "Beispielsaison wird angezeigt — verbinde eine Bestenlisten-API in den Einstellungen, um global mitzuspielen.",
+  "lb.global_empty": "Du wirst nur angezeigt, bis ein Bestenlisten-Server verbunden ist (Profil → Erweitert).",
   "lb.connect_api": "API verbinden",
   "lb.week": "Woche",
   "lb.month": "Monat",
@@ -201,7 +202,7 @@
   "profile.advanced": "Erweitert",
   "profile.advanced_desc": "RepCoun funktioniert komplett offline. Dieses sind optionale Extras für Power-User.",
   "profile.cloud_assist_desc": "Sendet ein Kamera-Bild an deinen eigenen KI-Server zur Übungserkennung. Funktioniert auch ohne.",
-  "profile.lbapi_desc": "Verbinde deinen eigenen Ranglisten-Server. Leer lassen für die Offline-Demo-Saison.",
+  "profile.lbapi_desc": "Verbinde deinen eigenen Ranglisten-Server. Bis er verbunden ist, siehst nur du dich.",
   "profile.track_sync_desc": "Speichere jedes RepCoun-Training in Health Connect, damit es deine Uhr und andere Gesundheits-Apps sehen.",
   "profile.hc_update": "Health Connect muss aktualisiert werden",
   "profile.hc_update_btn": "Aktualisieren"
