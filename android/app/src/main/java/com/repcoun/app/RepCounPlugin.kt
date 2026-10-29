@@ -75,6 +75,25 @@ class RepCounPlugin : Plugin() {
         call.resolve(data)
     }
 
+    /**
+     * Opens this app's system settings page. Used when a permission dialog is
+     * blocked by the phone (auto-deny) — the only way forward is letting the
+     * user enable it manually in Settings.
+     */
+    @PluginMethod
+    fun openAppSettings(call: PluginCall) {
+        try {
+            val intent = Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", io().packageName, null)
+            )
+            activity?.startActivity(intent)
+        } catch (ignored: Throwable) {
+            // No settings screen available on this device — ignore
+        }
+        call.resolve(JSObject())
+    }
+
     /* -------------------------- Health Connect --------------------------- */
 
     @PluginMethod

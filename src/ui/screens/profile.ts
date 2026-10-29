@@ -60,14 +60,14 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
 
     <div class="section-title"><div class="h2">${t("profile.health")}</div></div>
     <div class="card">
-      <div class="row">
-        <div style="width:42px;height:42px;border-radius:13px;background:var(--red-soft);display:grid;place-items:center;color:var(--red)">${icons.heart}</div>
-        <div style="flex:1">
+      <div class="row" style="align-items:flex-start;gap:14px">
+        <div style="width:42px;height:42px;flex:none;border-radius:13px;background:var(--red-soft);display:grid;place-items:center;color:var(--red)">${icons.heart}</div>
+        <div style="flex:1;min-width:0">
           <div class="h3" id="hc-title">${t("common.loading")}</div>
-          <div class="tiny">${t("profile.hc_desc")}</div>
+          <div class="tiny" style="margin-top:3px">${t("profile.hc_desc")}</div>
         </div>
-        <button class="btn soft" id="hc-btn" style="padding:9px 14px;min-height:38px" data-a="hc">${t("profile.hc_grant")}</button>
       </div>
+      <button class="btn soft block" id="hc-btn" style="margin-top:12px" data-a="hc">${t("profile.hc_grant")}</button>
     </div>
 
     <div class="section-title"><div class="h2">${t("profile.advanced")}</div></div>

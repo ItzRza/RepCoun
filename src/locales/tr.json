@@ -88,6 +88,8 @@
   "workout.loading_model_sub": "İlk açılış birkaç saniye sürer. Sonrasında çevrimdışı çalışır.",
   "workout.cam_error": "Kamera kullanılamıyor",
   "workout.cam_error_sub": "Kamerayı kullanan diğer uygulamaları kapat ve tekrar dene.",
+  "workout.cam_permission": "Kamera izni engellendi",
+  "workout.cam_permission_sub": "Ayarlar'da RepCoun için Kamera'ya izin ver, sonra Tekrar dene'ye dokun.",
   "workout.switch": "{exercise} üzerine geçilsin mi?",
   "workout.rejects": "Hatalı tekrarları eler",
   "workout.all_reps": "Tüm geçerli tekrarları sayar",

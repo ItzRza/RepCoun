@@ -103,6 +103,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   /* --------------------------------- state -------------------------------- */
   let engine: PoseEngine | null = null;
   let stream: MediaStream | null = null;
+  let camDenied = false; // camera permission blocked by the phone (needs Settings)
   let detector: RepCounter | null = null;
   let auto = new AutoDetector();
   let calories = new CalorieTracker({ weightKg: settings.weightKg, age: settings.age, sex: settings.sex });
@@ -206,11 +207,24 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   /* -------------------------------- camera -------------------------------- */
   async function startCamera() {
     const granted = await health.cameraPermission();
-    if (health.isNative() && !granted) throw new Error("permission");
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
+    if (health.isNative() && !granted) {
+      // Some phones auto-block the camera permission dialog and it can never be
+      // asked again — jump straight to the app settings page so the user can
+      // enable Camera for RepCoun there.
+      camDenied = true;
+      void health.openAppSettings();
+      throw new Error("permission");
+    }
+    camDenied = false;
+    stream = await navigator.mediaDevices
+      .getUserMedia({
+        video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      })
+      .catch((e: unknown) => {
+        camDenied = (e as { name?: string })?.name === "NotAllowedError";
+        throw e;
+      });
     video.srcObject = stream;
     await video.play().catch(() => {});
   }
@@ -428,12 +442,16 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     const err = h(`
       <div class="cam-error">
         <div class="logo-mark" style="background:#2a2a36">${icons.camera}</div>
-        <div class="h2">${t("workout.cam_error")}</div>
-        <div class="sub" style="color:rgba(255,255,255,.65)">${t("workout.cam_error_sub")}</div>
+        <div class="h2">${t(camDenied ? "workout.cam_permission" : "workout.cam_error")}</div>
+        <div class="sub" style="color:rgba(255,255,255,.65)">${t(camDenied ? "workout.cam_permission_sub" : "workout.cam_error_sub")}</div>
+        ${camDenied ? `<button class="btn primary" data-a="settings" style="background:#fff;color:#4c2fd6">${t("common.settings")}</button>` : ""}
         <button class="btn primary" data-a="retry">${t("common.retry")}</button>
         <button class="btn ghost" data-a="exit" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.2)">${t("common.close")}</button>
       </div>`);
     overlay.appendChild(err);
+    err.querySelector('[data-a="settings"]')?.addEventListener("click", () => {
+      void health.openAppSettings();
+    });
     err.querySelector('[data-a="retry"]')!.addEventListener("click", () => {
       err.remove();
       loadingEl.classList.remove("hidden");

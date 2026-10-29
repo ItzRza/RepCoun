@@ -59,6 +59,11 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
     );
     root.querySelector("[data-a='cam']")?.addEventListener("click", async () => {
       camGranted = await health.cameraPermission();
+      if (!camGranted && health.isNative()) {
+        // Permission dialog blocked by the phone — send the user to Settings.
+        void health.openAppSettings();
+        ctx.toast(t("workout.cam_permission"), "info");
+      }
       draw();
     });
     root.querySelector("[data-a='hc']")?.addEventListener("click", async () => {

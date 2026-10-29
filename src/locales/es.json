@@ -88,6 +88,8 @@
   "workout.loading_model_sub": "El primer inicio tarda unos segundos. Después funciona sin conexión.",
   "workout.cam_error": "Cámara no disponible",
   "workout.cam_error_sub": "Cierra otras apps que usen la cámara e inténtalo de nuevo.",
+  "workout.cam_permission": "Permiso de cámara bloqueado",
+  "workout.cam_permission_sub": "Permite la cámara para RepCoun en Ajustes y luego toca Reintentar.",
   "workout.switch": "¿Cambiar a {exercise}?",
   "workout.rejects": "Rechaza malas repeticiones",
   "workout.all_reps": "Cuenta todas las buenas repeticiones",

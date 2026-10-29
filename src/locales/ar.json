@@ -88,6 +88,8 @@
   "workout.loading_model_sub": "التشغيل الأول يستغرق بضع ثوانٍ. بعدها يعمل دون اتصال.",
   "workout.cam_error": "الكاميرا غير متاحة",
   "workout.cam_error_sub": "أغلق التطبيقات الأخرى التي تستخدم الكاميرا ثم حاول مجددًا.",
+  "workout.cam_permission": "إذن الكاميرا محجوب",
+  "workout.cam_permission_sub": "امنح RepCoun إذن الكاميرا من الإعدادات ثم اضغط على إعادة المحاولة.",
   "workout.switch": "الانتقال إلى {exercise}؟",
   "workout.rejects": "يرفض التكرارات الخاطئة",
   "workout.all_reps": "يعدّ كل التكرارات الصحيحة",

@@ -32,6 +32,7 @@ type Plugin = {
   }): Promise<{ ok: boolean }>;
   setPipEnabled(o: { enabled: boolean }): Promise<void>;
   enterPip(): Promise<{ ok: boolean }>;
+  openAppSettings(): Promise<void>;
 };
 
 export interface HcSession {
@@ -208,6 +209,17 @@ export const health = {
       return !!r.ok;
     } catch {
       return false;
+    }
+  },
+
+  /** Opens this app's system settings page (for permissions the phone blocked). */
+  async openAppSettings(): Promise<void> {
+    const p = plugin();
+    if (!p) return;
+    try {
+      await p.openAppSettings();
+    } catch {
+      /* ignore */
     }
   },
 };

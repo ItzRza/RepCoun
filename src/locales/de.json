@@ -88,6 +88,8 @@
   "workout.loading_model_sub": "Der erste Start dauert einige Sekunden. Danach funktioniert es offline.",
   "workout.cam_error": "Kamera nicht verfügbar",
   "workout.cam_error_sub": "Schließe andere Apps, die die Kamera verwenden, und versuche es erneut.",
+  "workout.cam_permission": "Kameralberechtigung blockiert",
+  "workout.cam_permission_sub": "Erlaube RepCoun die Kamera in den Einstellungen und tippe dann auf Erneut versuchen.",
   "workout.switch": "Zu {exercise} wechseln?",
   "workout.rejects": "Schlechte Wdh. werden verworfen",
   "workout.all_reps": "Zählt alle guten Wiederholungen",

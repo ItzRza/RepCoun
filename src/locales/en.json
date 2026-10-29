@@ -88,6 +88,8 @@
   "workout.loading_model_sub": "First start takes a few seconds. Works offline after this.",
   "workout.cam_error": "Camera unavailable",
   "workout.cam_error_sub": "Close other apps using the camera, then try again.",
+  "workout.cam_permission": "Camera permission blocked",
+  "workout.cam_permission_sub": "Allow Camera for RepCoun in Settings, then tap Try again.",
   "workout.switch": "Switch to {exercise}?",
   "workout.rejects": "Rejects bad reps",
   "workout.all_reps": "Counts all good reps",

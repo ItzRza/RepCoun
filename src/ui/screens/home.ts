@@ -106,13 +106,13 @@ export function renderHome(root: HTMLElement, ctx: Ctx) {
     </div>
 
     <div class="card" style="margin-top:18px" id="hc-card">
-      <div class="row">
-        <div class="emoji" style="width:42px;height:42px;border-radius:13px;background:var(--red-soft);display:grid;place-items:center;color:var(--red)">${icons.heart}</div>
-        <div style="flex:1">
+      <div class="row" style="align-items:flex-start">
+        <div class="emoji" style="width:42px;height:42px;flex:none;border-radius:13px;background:var(--red-soft);display:grid;place-items:center;color:var(--red)">${icons.heart}</div>
+        <div style="flex:1;min-width:0">
           <div class="h3">${t("home.hc")}</div>
-          <div class="tiny" id="hc-status">${t("common.loading")}</div>
+          <div class="tiny" id="hc-status" style="margin-top:2px">${t("common.loading")}</div>
         </div>
-        <span class="badge violet" data-a="hc" style="cursor:pointer">${t("home.grant")}</span>
+        <span class="badge violet" data-a="hc" style="cursor:pointer;flex:none">${t("home.grant")}</span>
       </div>
     </div>
   `;

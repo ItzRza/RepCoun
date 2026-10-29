@@ -88,6 +88,8 @@
   "workout.loading_model_sub": "Le premier démarrage prend quelques secondes. Fonctionne ensuite hors ligne.",
   "workout.cam_error": "Caméra indisponible",
   "workout.cam_error_sub": "Fermez les autres applications utilisant la caméra, puis réessayez.",
+  "workout.cam_permission": "Permission caméra bloquée",
+  "workout.cam_permission_sub": "Autorisez la caméra pour RepCoun dans Réglages, puis touchez Réessayer.",
   "workout.switch": "Passer à {exercise} ?",
   "workout.rejects": "Rejette les mauvaises répétitions",
   "workout.all_reps": "Compte toutes les bonnes répétitions",
