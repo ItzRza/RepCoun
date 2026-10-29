@@ -162,9 +162,15 @@ export function renderHome(root: HTMLElement, ctx: Ctx) {
 
   async function connectHc() {
     const status = $("#hc-status", root)!;
+    const a = await health.availability();
+    if (!a.available) {
+      status.textContent = t("profile.hc_unavailable");
+      ctx.toast(t("profile.hc_unavailable"), "bad");
+      return;
+    }
     const ok = await health.requestPermissions();
-    status.textContent = ok ? t("home.hc_connected") : t("home.hc_missing");
-    if (ok) ctx.toast(t("home.hc_connected"), "good");
+    status.textContent = ok ? t("home.hc_connected") : t("profile.hc_missing");
+    ctx.toast(ok ? t("home.hc_connected") : t("profile.hc_missing"), ok ? "good" : "bad");
   }
 
   void health.availability().then((a) => {

@@ -196,5 +196,11 @@
   "tip.press": "Drücke gerade nach oben und beende mit vollständig gestreckten Armen.",
   "tip.burpee": "Brust zum Boden, spring hoch, lande weich und wiederhole.",
   "tip.mc": "Ziehe die Knie schnell zur Brust, während die Hüften tief bleiben.",
-  "tip.bridge": "Drücke über die Ferse und halte oben eine Sekunde lang an."
+  "tip.bridge": "Drücke über die Ferse und halte oben eine Sekunde lang an.",
+  "profile.hc_missing": "Nicht verbunden",
+  "profile.advanced": "Erweitert",
+  "profile.advanced_desc": "RepCoun funktioniert komplett offline. Dieses sind optionale Extras für Power-User.",
+  "profile.cloud_assist_desc": "Sendet ein Kamera-Bild an deinen eigenen KI-Server zur Übungserkennung. Funktioniert auch ohne.",
+  "profile.lbapi_desc": "Verbinde deinen eigenen Ranglisten-Server. Leer lassen für die Offline-Demo-Saison.",
+  "profile.track_sync_desc": "Speichere jedes RepCoun-Training in Health Connect, damit es deine Uhr und andere Gesundheits-Apps sehen."
 }

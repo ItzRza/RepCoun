@@ -196,5 +196,11 @@
   "tip.press": "Barbi düz yukarı press et ve kollar tam kilitle bitir.",
   "tip.burpee": "Göğsünü yere değdir, yüksek zıpla, yumuşak in ve tekrarla.",
   "tip.mc": "Kalçanı düşük tutarken dizlerini göğsüne doğru hızlıca çek.",
-  "tip.bridge": "Topuklarınla it ve tepe pozisyonda bir saniye sık."
+  "tip.bridge": "Topuklarınla it ve tepe pozisyonda bir saniye sık.",
+  "profile.hc_missing": "Bağlı değil",
+  "profile.advanced": "Gelişmiş",
+  "profile.advanced_desc": "RepCoun tamamen çevrimdışı çalışır. Bunlar güç kullanıcılar için isteğe bağlı ekstralar.",
+  "profile.cloud_assist_desc": "Egzersizi görmek için kendi yapay zeka sunucunuza kamera karesi gönderir. Olmadan da çalışır.",
+  "profile.lbapi_desc": "Kendi sıralama sunucunuza bağlanın. Boş bırakırsanız çevrimdışı demo sezon kullanılır.",
+  "profile.track_sync_desc": "Her RepCoun antrenmanını Health Connect’e kaydedin; saatiniz ve diğer sağlık uygulamalarınız da görsün."
 }

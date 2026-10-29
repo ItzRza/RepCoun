@@ -196,5 +196,11 @@
   "tip.press": "Presiona recto por encima de la cabeza y termina con los brazos totalmente bloqueados.",
   "tip.burpee": "Pecho al suelo, salta alto, aterriza suave y repite.",
   "tip.mc": "Lleva las rodillas al pecho rápidamente manteniendo las caderas bajas.",
-  "tip.bridge": "Empuja con los talones y aprieta arriba durante un segundo."
+  "tip.bridge": "Empuja con los talones y aprieta arriba durante un segundo.",
+  "profile.hc_missing": "No conectado",
+  "profile.advanced": "Avanzado",
+  "profile.advanced_desc": "RepCoun funciona sin conexión. Son extras opcionales para usuarios avanzados.",
+  "profile.cloud_assist_desc": "Envía un fotograma de la cámara a tu propio servidor de IA para ayudar a reconocer el ejercicio. También funciona sin él.",
+  "profile.lbapi_desc": "Conecta tu propio servidor de clasificación. Déjalo vacío para la temporada de demostración sin conexión.",
+  "profile.track_sync_desc": "Guarda cada entrenamiento de RepCoun en Health Connect para que tu reloj y otras apps de salud lo vean."
 }

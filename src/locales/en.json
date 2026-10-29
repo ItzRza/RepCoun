@@ -2,12 +2,10 @@
   "app.name": "RepCoun",
   "app.tagline": "Effortlessly Track Reps",
   "app.sub": "AI rep counter that works with camera — even fully offline.",
-
   "nav.home": "Home",
   "nav.progress": "Progress",
   "nav.leaderboard": "Leaders",
   "nav.profile": "Profile",
-
   "common.save": "Save",
   "common.cancel": "Cancel",
   "common.close": "Close",
@@ -22,7 +20,6 @@
   "common.skip": "Skip",
   "common.loading": "Loading…",
   "common.sample": "Sample",
-
   "onboard.title": "Welcome to RepCoun",
   "onboard.sub": "Point the camera at your workout — RepCoun detects the movement, counts every rep and burns calories.",
   "onboard.name": "What should we call you?",
@@ -41,7 +38,6 @@
   "onboard.granted": "Camera ready!",
   "onboard.start": "Start training",
   "onboard.step": "Step",
-
   "home.greeting": "Hi {name} 👋",
   "home.greeting_anon": "Ready to train? 👋",
   "home.start": "Start Workout",
@@ -69,7 +65,6 @@
   "home.need_cam": "Camera permission needed",
   "home.need_cam_sub": "Grant camera access to start tracking.",
   "home.grant": "Grant",
-
   "workout.tracking": "Tracking",
   "workout.paused": "Paused",
   "workout.looking": "Looking for you…",
@@ -100,11 +95,9 @@
   "workout.cloud_off": "Local AI",
   "workout.mini": "Mini mode",
   "workout.mini_hint": "RepCoun floats above other apps and keeps counting 📌",
-
   "rep.half": "Half rep — go deeper",
   "rep.too_fast": "Too fast — slow down",
   "rep.jitter": "Stay steady",
-
   "progress.title": "Progress",
   "progress.all_time": "All time",
   "progress.total_reps": "Total reps",
@@ -122,7 +115,6 @@
   "progress.from_apps": "From other apps",
   "progress.from_apps_sub": "Workouts other apps synced to Health Connect (Home Workout, Samsung Health, …)",
   "progress.no_apps": "No synced workouts yet",
-
   "lb.title": "Leaderboard",
   "lb.global": "Global",
   "lb.local": "Local",
@@ -134,7 +126,6 @@
   "lb.month": "Month",
   "lb.all_time": "All-Time",
   "lb.empty": "No data yet",
-
   "rank.rookie": "Rookie",
   "rank.bronze": "Bronze",
   "rank.silver": "Silver",
@@ -142,7 +133,6 @@
   "rank.platinum": "Platinum",
   "rank.diamond": "Diamond",
   "rank.legendary": "Legendary",
-
   "profile.title": "Profile",
   "profile.name": "Display name",
   "profile.lb_name": "Leaderboard name",
@@ -183,7 +173,6 @@
   "profile.about": "About",
   "profile.version": "Version",
   "profile.track_sync": "Write workouts to Health Connect",
-
   "exercise.pushup": "Push-up",
   "exercise.squat": "Squat",
   "exercise.situp": "Sit-up",
@@ -196,7 +185,6 @@
   "exercise.burpee": "Burpee",
   "exercise.mountainclimber": "Mountain Climber",
   "exercise.glutebridge": "Glute Bridge",
-
   "tip.pushup": "Keep a straight line from head to heels and lower until your elbows pass 90°.",
   "tip.squat": "Push your hips back, keep knees tracking over toes, thighs parallel to the floor.",
   "tip.situp": "Curl up one vertebra at a time — don't yank your neck.",
@@ -208,5 +196,11 @@
   "tip.press": "Press straight overhead and finish with arms fully locked.",
   "tip.burpee": "Chest to floor, jump tall, land soft and repeat.",
   "tip.mc": "Drive knees to chest quickly while keeping hips low.",
-  "tip.bridge": "Drive through your heels and squeeze at the top for one second."
+  "tip.bridge": "Drive through your heels and squeeze at the top for one second.",
+  "profile.hc_missing": "Not connected",
+  "profile.advanced": "Advanced",
+  "profile.advanced_desc": "RepCoun works fully offline. These are optional extras for power users.",
+  "profile.cloud_assist_desc": "Send a camera frame to your own AI server for help spotting the exercise. Works without it too.",
+  "profile.lbapi_desc": "Connect your own leaderboard server. Leave empty for the offline demo season.",
+  "profile.track_sync_desc": "Save each RepCoun workout into Health Connect so your watch and other health apps see it too."
 }

@@ -196,5 +196,11 @@
   "tip.press": "Empurre reto para cima e termine com os braços totalmente travados.",
   "tip.burpee": "Peito no chão, salte alto, aterrisse suave e repita.",
   "tip.mc": "Traga os joelhos ao peito rapidamente mantendo os quadris baixos.",
-  "tip.bridge": "Empurre pelos calcanhares e contraia no topo por um segundo."
+  "tip.bridge": "Empurre pelos calcanhares e contraia no topo por um segundo.",
+  "profile.hc_missing": "Não conectado",
+  "profile.advanced": "Avançado",
+  "profile.advanced_desc": "O RepCoun funciona totalmente offline. Estes são extras opcionais para usuários avançados.",
+  "profile.cloud_assist_desc": "Envia um quadro da câmera para seu próprio servidor de IA para ajudar a reconhecer o exercício. Também funciona sem ele.",
+  "profile.lbapi_desc": "Conecte seu próprio servidor de classificação. Deixe vazio para a temporada de demonstração offline.",
+  "profile.track_sync_desc": "Salve cada treino do RepCoun no Health Connect para que seu relógio e outros apps de saúde também vejam."
 }

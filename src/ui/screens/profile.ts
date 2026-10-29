@@ -7,7 +7,7 @@ import { icons } from "../icons";
 import { store, totals } from "../../data/store";
 import { rankOf, setRankNameResolver } from "../../data/leaderboard";
 import { health } from "../../services/health";
-import { getCloudEndpoint, setCloudEndpoint, packStatus } from "../../services/online";
+import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
 
 export function renderProfile(root: HTMLElement, ctx: Ctx) {
   const s = store.getSettings();
@@ -53,7 +53,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       ${row("model", icons.bolt, t("profile.model"), s.model === "full" ? t("profile.model_full") : t("profile.model_lite"))}
       ${toggleRow("autodetect", icons.camera, t("profile.autodetect"), t("profile.autodetect_desc"), s.autoDetect)}
       ${toggleRow("sound", icons.star, t("profile.sound"), "", s.sound && s.haptics)}
-      ${toggleRow("trackToHc", icons.heart, t("profile.track_sync"), "", s.trackToHc)}
+      ${toggleRow("trackToHc", icons.heart, t("profile.track_sync"), t("profile.track_sync_desc"), s.trackToHc)}
       ${row("goal", icons.target, t("profile.goal"), String(s.repGoal))}
       ${row("camera", icons.camera_flip, t("profile.camera"), s.cameraFacing === "user" ? t("profile.front") : t("profile.back"))}
     </div>
@@ -70,10 +70,11 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       </div>
     </div>
 
-    <div class="section-title"><div class="h2">Cloud</div><span class="badge ${packStatus().source === "cloud" ? "green" : "gray"}">${packStatus().source === "cloud" ? "Synced" : "Local v" + packStatus().version}</span></div>
+    <div class="section-title"><div class="h2">${t("profile.advanced")}</div></div>
+    <div class="sub" style="margin:0 2px 10px">${t("profile.advanced_desc")}</div>
     <div class="list">
-      ${row("cloud", icons.globe, "Cloud assist API", getCloudEndpoint() ? "ON" : "OFF")}
-      ${row("lbapi", icons.trophy, t("lb.connect_api"), "")}
+      ${rowDesc("cloud", icons.globe, "Cloud assist API", t("profile.cloud_assist_desc"), getCloudEndpoint() ? "ON" : "OFF")}
+      ${rowDesc("lbapi", icons.trophy, t("lb.connect_api"), t("profile.lbapi_desc"), "")}
     </div>
 
     <div class="section-title"><div class="h2">${t("profile.data")}</div></div>
@@ -213,9 +214,15 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
 
   async function connectHc() {
     const title = root.querySelector("#hc-title");
+    const a = await health.availability();
+    if (!a.available) {
+      if (title) title.textContent = t("profile.hc_unavailable");
+      ctx.toast(t("profile.hc_unavailable"), "bad");
+      return;
+    }
     const ok = await health.requestPermissions();
     if (title) title.textContent = ok ? t("profile.hc_connected") : t("profile.hc_missing");
-    ctx.toast(ok ? t("profile.hc_connected") : t("profile.hc_unavailable"), ok ? "good" : "bad");
+    ctx.toast(ok ? t("profile.hc_connected") : t("profile.hc_missing"), ok ? "good" : "bad");
   }
 
   function clearSheet() {
@@ -254,6 +261,19 @@ function row(a: string, icon: string, label: string, value: string): string {
     <div class="list-row" data-a="${a}">
       <div class="emoji">${icon}</div>
       <div style="flex:1" class="h3">${label}</div>
+      <div class="sub" style="font-weight:700">${esc(value)}</div>
+      <span style="color:var(--muted)">${icons.next}</span>
+    </div>`;
+}
+
+function rowDesc(a: string, icon: string, label: string, desc: string, value: string): string {
+  return `
+    <div class="list-row" data-a="${a}">
+      <div class="emoji">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div class="h3">${label}</div>
+        <div class="tiny">${desc}</div>
+      </div>
       <div class="sub" style="font-weight:700">${esc(value)}</div>
       <span style="color:var(--muted)">${icons.next}</span>
     </div>`;

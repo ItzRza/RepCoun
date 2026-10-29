@@ -17,6 +17,14 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
     lang: ctx.settings.lang,
   };
   let camGranted = false;
+  let hcGranted = false;
+
+  void health.availability().then((a) => {
+    if (a.granted && !hcGranted) {
+      hcGranted = true;
+      draw();
+    }
+  });
 
   function draw() {
     root.innerHTML = `
@@ -54,7 +62,13 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
       draw();
     });
     root.querySelector("[data-a='hc']")?.addEventListener("click", async () => {
-      await health.requestPermissions();
+      const a = await health.availability();
+      if (!a.available) {
+        ctx.toast(t("profile.hc_unavailable"), "bad");
+        return;
+      }
+      hcGranted = await health.requestPermissions();
+      ctx.toast(hcGranted ? t("profile.hc_connected") : t("profile.hc_missing"), hcGranted ? "good" : "bad");
       draw();
     });
   }
@@ -114,7 +128,7 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
         <div class="row">
           <div class="emoji" style="width:44px;height:44px;border-radius:14px;background:var(--red-soft);display:grid;place-items:center;color:var(--red)">${icons.heart}</div>
           <div style="flex:1"><div class="h3">${t("profile.health")}</div><div class="tiny">${t("profile.hc_desc")}</div></div>
-          <button class="btn soft" style="min-height:40px;padding:8px 14px" data-a="hc">${t("common.ok")}</button>
+          ${hcGranted ? `<span class="badge green">${icons.check}✓</span>` : `<button class="btn soft" style="min-height:40px;padding:8px 14px" data-a="hc">${t("common.ok")}</button>`}
         </div>
       </div>`;
   }

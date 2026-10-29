@@ -40,11 +40,21 @@ class MainActivity : BridgeActivity() {
     }
 
     fun launchCameraPermission() {
-        cameraLauncher?.launch(arrayOf(Manifest.permission.CAMERA))
+        try {
+            cameraLauncher?.launch(arrayOf(Manifest.permission.CAMERA))
+        } catch (t: Throwable) {
+            // Some devices block the system dialog — fail gracefully, no crash
+            RepCounPlugin.resolveCamera(false)
+        }
     }
 
     fun launchHcPermissions() {
-        hcLauncher?.launch(RepCounPlugin.HC_PERMISSIONS)
+        try {
+            hcLauncher?.launch(RepCounPlugin.HC_PERMISSIONS)
+        } catch (t: Throwable) {
+            // Broken / missing Health Connect on the device — fail gracefully
+            RepCounPlugin.resolveHc(false)
+        }
     }
 
     /**

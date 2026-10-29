@@ -41,7 +41,7 @@ The APK is built **in the cloud** by GitHub Actions — your PC only needs Node.
    git push -u origin main
    ```
 
-4. Open your repository on GitHub → **Actions** tab → wait ~8–12 minutes for **Build APK**.
+4. Open **https://github.com/ItzRza/RepCoun/actions/workflows/build-apk.yml** → wait ~5–8 minutes for **Build APK**.
 5. When it turns green: click the run → **Artifacts** → download **RepCoun-APK** → unzip →
    copy `app-debug.apk` to your phone → install (allow "Install unknown apps").
 

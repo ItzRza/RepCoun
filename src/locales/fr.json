@@ -196,5 +196,11 @@
   "tip.press": "Poussez droit au-dessus de la tête et terminez bras complètement verrouillés.",
   "tip.burpee": "Poitrine au sol, sautez haut, atterrissez en douceur et recommencez.",
   "tip.mc": "Ramenez les genoux rapidement vers la poitrine en gardant les hanches basses.",
-  "tip.bridge": "Poussez sur les talons et serrez en haut pendant une seconde."
+  "tip.bridge": "Poussez sur les talons et serrez en haut pendant une seconde.",
+  "profile.hc_missing": "Non connecté",
+  "profile.advanced": "Avancé",
+  "profile.advanced_desc": "RepCoun fonctionne hors ligne. Ce sont des options facultatives pour les utilisateurs avancés.",
+  "profile.cloud_assist_desc": "Envoie une image de la caméra à votre propre serveur IA pour aider à reconnaître l’exercice. Fonctionne aussi sans.",
+  "profile.lbapi_desc": "Connectez votre propre serveur de classement. Laissez vide pour la saison démo hors ligne.",
+  "profile.track_sync_desc": "Enregistrez chaque séance RepCoun dans Health Connect pour que votre montre et autres apps de santé la voient."
 }
