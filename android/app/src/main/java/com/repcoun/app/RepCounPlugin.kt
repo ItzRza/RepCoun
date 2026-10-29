@@ -1,6 +1,8 @@
 package com.repcoun.app
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.health.connect.client.HealthConnectClient
@@ -67,20 +69,24 @@ class RepCounPlugin : Plugin() {
     @PluginMethod
     fun hcAvailability(call: PluginCall) {
         val data = JSObject()
-        data.put("available", sdkAvailable())
+        val status = hcSdkStatus()
+        data.put("available", status == HealthConnectClient.SDK_AVAILABLE)
+        data.put(
+            "updateRequired",
+            status == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
+        )
+        data.put("status", status)
         call.resolve(data)
     }
 
-    private fun sdkAvailable(): Boolean = try {
-        if (Build.VERSION.SDK_INT >= 34) {
-            HealthConnectClient.getSdkStatus(io()) == HealthConnectClient.SDK_AVAILABLE
-        } else {
-            // Pre-14 devices need the Health Connect app from Play Store
-            HealthConnectClient.getSdkStatus(io()) == HealthConnectClient.SDK_AVAILABLE
-        }
+    /** 0 = ready · 1 = not available on this device · 2 = install / update required */
+    private fun hcSdkStatus(): Int = try {
+        HealthConnectClient.getSdkStatus(io())
     } catch (t: Throwable) {
-        false
+        HealthConnectClient.SDK_UNAVAILABLE
     }
+
+    private fun sdkAvailable(): Boolean = hcSdkStatus() == HealthConnectClient.SDK_AVAILABLE
 
     @PluginMethod
     fun hcStatus(call: PluginCall) {
@@ -101,9 +107,15 @@ class RepCounPlugin : Plugin() {
 
     @PluginMethod
     fun hcRequestPermissions(call: PluginCall) {
-        if (!sdkAvailable()) {
+        val status = hcSdkStatus()
+        if (status != HealthConnectClient.SDK_AVAILABLE) {
             val data = JSObject()
             data.put("granted", false)
+            data.put(
+                "reason",
+                if (status == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED) "update"
+                else "unavailable"
+            )
             call.resolve(data)
             return
         }
@@ -122,6 +134,40 @@ class RepCounPlugin : Plugin() {
             data.put("granted", false)
             call.resolve(data)
         }
+    }
+
+    /**
+     * Opens the Health Connect install/update page (Play Store), so a missing or
+     * outdated Health Connect can be fixed with one tap.
+     */
+    @PluginMethod
+    fun hcOpenStore(call: PluginCall) {
+        val pkg = "com.google.android.apps.healthdata"
+        val act = activity
+        val targets = listOf(
+            "market://details?id=$pkg",
+            "https://play.google.com/store/apps/details?id=$pkg"
+        )
+        if (act != null) {
+            var opened = false
+            for (t in targets) {
+                try {
+                    act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(t)))
+                    opened = true
+                    break
+                } catch (ignored: Throwable) {
+                    // try the next target
+                }
+            }
+            if (!opened) {
+                // Last resort: Health Connect's own settings screen (Android 14+)
+                try {
+                    act.startActivity(Intent("android.healthconnect.action.MANAGE_HEALTH_PERMISSIONS"))
+                } catch (ignored: Throwable) {
+                }
+            }
+        }
+        call.resolve(JSObject())
     }
 
     @PluginMethod

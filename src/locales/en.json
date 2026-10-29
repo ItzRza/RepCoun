@@ -202,5 +202,7 @@
   "profile.advanced_desc": "RepCoun works fully offline. These are optional extras for power users.",
   "profile.cloud_assist_desc": "Send a camera frame to your own AI server for help spotting the exercise. Works without it too.",
   "profile.lbapi_desc": "Connect your own leaderboard server. Leave empty for the offline demo season.",
-  "profile.track_sync_desc": "Save each RepCoun workout into Health Connect so your watch and other health apps see it too."
+  "profile.track_sync_desc": "Save each RepCoun workout into Health Connect so your watch and other health apps see it too.",
+  "profile.hc_update": "Health Connect needs an update",
+  "profile.hc_update_btn": "Update"
 }

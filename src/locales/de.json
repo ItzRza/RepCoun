@@ -202,5 +202,7 @@
   "profile.advanced_desc": "RepCoun funktioniert komplett offline. Dieses sind optionale Extras für Power-User.",
   "profile.cloud_assist_desc": "Sendet ein Kamera-Bild an deinen eigenen KI-Server zur Übungserkennung. Funktioniert auch ohne.",
   "profile.lbapi_desc": "Verbinde deinen eigenen Ranglisten-Server. Leer lassen für die Offline-Demo-Saison.",
-  "profile.track_sync_desc": "Speichere jedes RepCoun-Training in Health Connect, damit es deine Uhr und andere Gesundheits-Apps sehen."
+  "profile.track_sync_desc": "Speichere jedes RepCoun-Training in Health Connect, damit es deine Uhr und andere Gesundheits-Apps sehen.",
+  "profile.hc_update": "Health Connect muss aktualisiert werden",
+  "profile.hc_update_btn": "Aktualisieren"
 }

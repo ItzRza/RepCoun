@@ -202,5 +202,7 @@
   "profile.advanced_desc": "يعمل RepCoun دون إنترنت بالكامل. هذه إضافات اختيارية للمستخدمين المتقدمين.",
   "profile.cloud_assist_desc": "يرسل إطار الكاميرا إلى خادم الذكاء الاصطناعي الخاص بك لمساعدة تمييز التمرين. يعمل بدونه أيضاً.",
   "profile.lbapi_desc": "اربط خادم لوحة الصدارة الخاص بك. اتركه فارغاً لاستخدام الموسم التجريبي دون إنترنت.",
-  "profile.track_sync_desc": "احفظ كل تمرين RepCoun في Health Connect لتراه ساعتك وتطبيقات الصحية الأخرى."
+  "profile.track_sync_desc": "احفظ كل تمرين RepCoun في Health Connect لتراه ساعتك وتطبيقات الصحية الأخرى.",
+  "profile.hc_update": "يحتاج Health Connect إلى تحديث",
+  "profile.hc_update_btn": "تحديث"
 }

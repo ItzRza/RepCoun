@@ -202,5 +202,7 @@
   "profile.advanced_desc": "RepCoun fonctionne hors ligne. Ce sont des options facultatives pour les utilisateurs avancés.",
   "profile.cloud_assist_desc": "Envoie une image de la caméra à votre propre serveur IA pour aider à reconnaître l’exercice. Fonctionne aussi sans.",
   "profile.lbapi_desc": "Connectez votre propre serveur de classement. Laissez vide pour la saison démo hors ligne.",
-  "profile.track_sync_desc": "Enregistrez chaque séance RepCoun dans Health Connect pour que votre montre et autres apps de santé la voient."
+  "profile.track_sync_desc": "Enregistrez chaque séance RepCoun dans Health Connect pour que votre montre et autres apps de santé la voient.",
+  "profile.hc_update": "Health Connect doit être mis à jour",
+  "profile.hc_update_btn": "Mettre à jour"
 }

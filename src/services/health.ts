@@ -10,12 +10,14 @@ export interface HcAvailability {
   native: boolean;
   available: boolean; // Health Connect usable on this device
   granted: boolean; // workout permissions granted
+  updateRequired: boolean; // Health Connect installed but needs an update
 }
 
 type Plugin = {
   requestCamera(): Promise<{ granted: boolean }>;
-  hcAvailability(): Promise<{ available: boolean }>;
-  hcRequestPermissions(): Promise<{ granted: boolean }>;
+  hcAvailability(): Promise<{ available: boolean; updateRequired?: boolean; status?: number }>;
+  hcRequestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable" }>;
+  hcOpenStore(): Promise<void>;
   hcStatus(): Promise<{ granted: boolean }>;
   hcReadHeartRate(): Promise<{ bpm: number | null; at: number | null }>;
   hcReadSessions(o: { days: number }): Promise<{ sessions: HcSession[]; ok: boolean; error?: string }>;
@@ -68,23 +70,42 @@ export const health = {
 
   async availability(): Promise<HcAvailability> {
     const p = plugin();
-    if (!p) return { native: false, available: false, granted: false };
+    if (!p) return { native: false, available: false, granted: false, updateRequired: false };
     try {
-      const [{ available }, { granted }] = await Promise.all([p.hcAvailability(), p.hcStatus()]);
-      return { native: true, available, granted };
+      const [{ available, updateRequired }, { granted }] = await Promise.all([
+        p.hcAvailability(),
+        p.hcStatus(),
+      ]);
+      return { native: true, available, granted, updateRequired: !!updateRequired };
     } catch {
-      return { native: true, available: false, granted: false };
+      return { native: true, available: false, granted: false, updateRequired: false };
     }
   },
 
-  async requestPermissions(): Promise<boolean> {
+  /**
+   * Asks for Health Connect permissions.
+   * reason: "update" = Health Connect needs an update (use openHcStore),
+   *         "unavailable" = this device has no Health Connect at all.
+   */
+  async requestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable" }> {
     const p = plugin();
-    if (!p) return false;
+    if (!p) return { granted: false, reason: "unavailable" };
     try {
       const r = await p.hcRequestPermissions();
-      return !!r.granted;
+      return { granted: !!r.granted, reason: r.reason };
     } catch {
-      return false;
+      return { granted: false };
+    }
+  },
+
+  /** Opens Health Connect's install/update page (Play Store). */
+  async openHcStore(): Promise<void> {
+    const p = plugin();
+    if (!p) return;
+    try {
+      await p.hcOpenStore();
+    } catch {
+      /* ignore */
     }
   },
 

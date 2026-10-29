@@ -62,12 +62,21 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
       draw();
     });
     root.querySelector("[data-a='hc']")?.addEventListener("click", async () => {
-      const a = await health.availability();
-      if (!a.available) {
+      if (!health.isNative()) {
+        ctx.toast(t("profile.hc_web"), "info");
+        return;
+      }
+      const r = await health.requestPermissions();
+      if (r.reason === "update") {
+        ctx.toast(t("profile.hc_update"), "bad");
+        void health.openHcStore(); // one tap → Play Store to update Health Connect
+        return;
+      }
+      if (r.reason === "unavailable") {
         ctx.toast(t("profile.hc_unavailable"), "bad");
         return;
       }
-      hcGranted = await health.requestPermissions();
+      hcGranted = r.granted;
       ctx.toast(hcGranted ? t("profile.hc_connected") : t("profile.hc_missing"), hcGranted ? "good" : "bad");
       draw();
     });

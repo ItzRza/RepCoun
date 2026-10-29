@@ -162,15 +162,24 @@ export function renderHome(root: HTMLElement, ctx: Ctx) {
 
   async function connectHc() {
     const status = $("#hc-status", root)!;
-    const a = await health.availability();
-    if (!a.available) {
+    if (!health.isNative()) {
+      ctx.toast(t("profile.hc_web"), "info");
+      return;
+    }
+    const r = await health.requestPermissions();
+    if (r.reason === "update") {
+      status.textContent = t("profile.hc_update");
+      ctx.toast(t("profile.hc_update"), "bad");
+      void health.openHcStore(); // one tap → Play Store to update Health Connect
+      return;
+    }
+    if (r.reason === "unavailable") {
       status.textContent = t("profile.hc_unavailable");
       ctx.toast(t("profile.hc_unavailable"), "bad");
       return;
     }
-    const ok = await health.requestPermissions();
-    status.textContent = ok ? t("home.hc_connected") : t("profile.hc_missing");
-    ctx.toast(ok ? t("home.hc_connected") : t("profile.hc_missing"), ok ? "good" : "bad");
+    status.textContent = r.granted ? t("home.hc_connected") : t("profile.hc_missing");
+    ctx.toast(r.granted ? t("home.hc_connected") : t("profile.hc_missing"), r.granted ? "good" : "bad");
   }
 
   void health.availability().then((a) => {
@@ -178,11 +187,13 @@ export function renderHome(root: HTMLElement, ctx: Ctx) {
     if (!status) return;
     status.textContent = !a.native
       ? t("profile.hc_web")
-      : !a.available
-        ? t("profile.hc_unavailable")
-        : a.granted
-          ? t("profile.hc_connected")
-          : t("profile.hc_missing");
+      : a.updateRequired
+        ? t("profile.hc_update")
+        : !a.available
+          ? t("profile.hc_unavailable")
+          : a.granted
+            ? t("profile.hc_connected")
+            : t("profile.hc_missing");
   });
 
   onConnectionChange(() => ctx.rerender());

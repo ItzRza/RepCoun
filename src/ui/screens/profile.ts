@@ -66,7 +66,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
           <div class="h3" id="hc-title">${t("common.loading")}</div>
           <div class="tiny">${t("profile.hc_desc")}</div>
         </div>
-        <button class="btn soft" style="padding:9px 14px;min-height:38px" data-a="hc">${t("profile.hc_grant")}</button>
+        <button class="btn soft" id="hc-btn" style="padding:9px 14px;min-height:38px" data-a="hc">${t("profile.hc_grant")}</button>
       </div>
     </div>
 
@@ -214,15 +214,24 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
 
   async function connectHc() {
     const title = root.querySelector("#hc-title");
-    const a = await health.availability();
-    if (!a.available) {
+    if (!health.isNative()) {
+      ctx.toast(t("profile.hc_web"), "info");
+      return;
+    }
+    const r = await health.requestPermissions();
+    if (r.reason === "update") {
+      if (title) title.textContent = t("profile.hc_update");
+      ctx.toast(t("profile.hc_update"), "bad");
+      void health.openHcStore(); // one tap → Play Store to update Health Connect
+      return;
+    }
+    if (r.reason === "unavailable") {
       if (title) title.textContent = t("profile.hc_unavailable");
       ctx.toast(t("profile.hc_unavailable"), "bad");
       return;
     }
-    const ok = await health.requestPermissions();
-    if (title) title.textContent = ok ? t("profile.hc_connected") : t("profile.hc_missing");
-    ctx.toast(ok ? t("profile.hc_connected") : t("profile.hc_missing"), ok ? "good" : "bad");
+    if (title) title.textContent = r.granted ? t("profile.hc_connected") : t("profile.hc_missing");
+    ctx.toast(r.granted ? t("profile.hc_connected") : t("profile.hc_missing"), r.granted ? "good" : "bad");
   }
 
   function clearSheet() {
@@ -245,14 +254,18 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
 
   void health.availability().then((a) => {
     const title = root.querySelector("#hc-title");
+    const btn = root.querySelector("#hc-btn");
+    if (a.updateRequired && btn) btn.textContent = t("profile.hc_update_btn");
     if (!title) return;
     title.textContent = !a.native
       ? t("profile.hc_web")
-      : !a.available
-        ? t("profile.hc_unavailable")
-        : a.granted
-          ? t("profile.hc_connected")
-          : t("home.hc_missing");
+      : a.updateRequired
+        ? t("profile.hc_update")
+        : !a.available
+          ? t("profile.hc_unavailable")
+          : a.granted
+            ? t("profile.hc_connected")
+            : t("home.hc_missing");
   });
 }
 
