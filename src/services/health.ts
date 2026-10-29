@@ -17,7 +17,7 @@ type Plugin = {
   requestCamera(): Promise<{ granted: boolean }>;
   appVersion(): Promise<{ version?: string; build?: number }>;
   hcAvailability(): Promise<{ available: boolean; updateRequired?: boolean; status?: number }>;
-  hcRequestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable" }>;
+  hcRequestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable"; manual?: boolean }>;
   hcOpenStore(): Promise<void>;
   hcStatus(): Promise<{ granted: boolean }>;
   hcReadHeartRate(): Promise<{ bpm: number | null; at: number | null }>;
@@ -120,14 +120,16 @@ export const health = {
    * Asks for Health Connect permissions.
    * reason: "update" = Health Connect needs an update (use openHcStore),
    *         "unavailable" = this device has no Health Connect at all.
+   * manual: the permission dialog was blocked by the system — Health Connect's
+   *         own permissions screen was opened instead; grant there, then retry.
    */
-  async requestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable" }> {
+  async requestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable"; manual?: boolean }> {
     if (!this.isNative()) return { granted: false, reason: "unavailable" };
     const p = plugin();
     if (!p) return { granted: false };
     try {
       const r = await p.hcRequestPermissions();
-      return { granted: !!r.granted, reason: r.reason };
+      return { granted: !!r.granted, reason: r.reason, manual: !!r.manual };
     } catch {
       return { granted: false };
     }

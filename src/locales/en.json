@@ -199,6 +199,7 @@
   "tip.mc": "Drive knees to chest quickly while keeping hips low.",
   "tip.bridge": "Drive through your heels and squeeze at the top for one second.",
   "profile.hc_missing": "Not connected",
+  "profile.hc_manual": "Permission screen was blocked. Grant RepCoun access on the Health Connect screen that opened, then tap Connect again.",
   "profile.advanced": "Advanced",
   "profile.advanced_desc": "RepCoun works fully offline. These are optional extras for power users.",
   "profile.cloud_assist_desc": "Send a camera frame to your own AI server for help spotting the exercise. Works without it too.",

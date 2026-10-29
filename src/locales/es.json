@@ -199,6 +199,7 @@
   "tip.mc": "Lleva las rodillas al pecho rápidamente manteniendo las caderas bajas.",
   "tip.bridge": "Empuja con los talones y aprieta arriba durante un segundo.",
   "profile.hc_missing": "No conectado",
+  "profile.hc_manual": "La pantalla de permisos fue bloqueada. Concede acceso a RepCoun en la pantalla de Health Connect que se abrió y toca Conectar de nuevo.",
   "profile.advanced": "Avanzado",
   "profile.advanced_desc": "RepCoun funciona sin conexión. Son extras opcionales para usuarios avanzados.",
   "profile.cloud_assist_desc": "Envía un fotograma de la cámara a tu propio servidor de IA para ayudar a reconocer el ejercicio. También funciona sin él.",

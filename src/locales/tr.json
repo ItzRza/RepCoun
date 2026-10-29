@@ -199,6 +199,7 @@
   "tip.mc": "Kalçanı düşük tutarken dizlerini göğsüne doğru hızlıca çek.",
   "tip.bridge": "Topuklarınla it ve tepe pozisyonda bir saniye sık.",
   "profile.hc_missing": "Bağlı değil",
+  "profile.hc_manual": "İzin ekranı engellendi. Açılan Health Connect ekranında RepCoun'a erişim izni ver, sonra Bağlan'a tekrar dokun.",
   "profile.advanced": "Gelişmiş",
   "profile.advanced_desc": "RepCoun tamamen çevrimdışı çalışır. Bunlar güç kullanıcılar için isteğe bağlı ekstralar.",
   "profile.cloud_assist_desc": "Egzersizi görmek için kendi yapay zeka sunucunuza kamera karesi gönderir. Olmadan da çalışır.",

@@ -199,6 +199,7 @@
   "tip.mc": "Traga os joelhos ao peito rapidamente mantendo os quadris baixos.",
   "tip.bridge": "Empurre pelos calcanhares e contraia no topo por um segundo.",
   "profile.hc_missing": "Não conectado",
+  "profile.hc_manual": "A tela de permissões foi bloqueada. Conceda acesso ao RepCoun na tela do Health Connect que foi aberta e toque em Conectar novamente.",
   "profile.advanced": "Avançado",
   "profile.advanced_desc": "O RepCoun funciona totalmente offline. Estes são extras opcionais para usuários avançados.",
   "profile.cloud_assist_desc": "Envia um quadro da câmera para seu próprio servidor de IA para ajudar a reconhecer o exercício. Também funciona sem ele.",

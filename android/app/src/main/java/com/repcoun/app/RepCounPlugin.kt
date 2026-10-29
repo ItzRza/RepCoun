@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
@@ -136,6 +137,7 @@ class RepCounPlugin : Plugin() {
             return
         }
         hcCall = call
+        hcRequestedAtMs = SystemClock.elapsedRealtime()
         val act = activity as? MainActivity
         if (act != null) {
             act.runOnUiThread { act.launchHcPermissions() }
@@ -349,6 +351,10 @@ class RepCounPlugin : Plugin() {
         @Volatile
         private var hcCall: PluginCall? = null
 
+        /** When the HC permission request was launched — detects a silently denied dialog. */
+        @Volatile
+        var hcRequestedAtMs: Long = 0L
+
         /** true while a workout is running — enables auto mini-mode on Home press */
         @Volatile
         var pipEnabled: Boolean = false
@@ -378,6 +384,22 @@ class RepCounPlugin : Plugin() {
                 hcCall = null
                 val data = JSObject()
                 data.put("granted", granted)
+                call.resolve(data)
+            }
+        }
+
+        /**
+         * Resolves the pending permission call when the standard dialog could not
+         * be used: `manual=true` means Health Connect's own permissions screen was
+         * opened so the user can grant access there instead.
+         */
+        @JvmStatic
+        fun resolveHcManual(openedScreen: Boolean) {
+            hcCall?.let { call ->
+                hcCall = null
+                val data = JSObject()
+                data.put("granted", false)
+                data.put("manual", openedScreen)
                 call.resolve(data)
             }
         }

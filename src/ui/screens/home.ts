@@ -167,6 +167,12 @@ export function renderHome(root: HTMLElement, ctx: Ctx) {
       return;
     }
     const r = await health.requestPermissions();
+    if (r.manual) {
+      // The permission dialog was blocked by the system — Health Connect's own
+      // screen is open now. Grant access there, then tap Connect again.
+      ctx.toast(t("profile.hc_manual"), "info");
+      return;
+    }
     if (r.reason === "update") {
       status.textContent = t("profile.hc_update");
       ctx.toast(t("profile.hc_update"), "bad");
@@ -182,18 +188,25 @@ export function renderHome(root: HTMLElement, ctx: Ctx) {
     ctx.toast(r.granted ? t("home.hc_connected") : t("profile.hc_missing"), r.granted ? "good" : "bad");
   }
 
-  void health.availability().then((a) => {
+  function refreshHcStatus() {
     const status = $("#hc-status", root);
     if (!status) return;
-    status.textContent = !a.native
-      ? t("profile.hc_web")
-      : a.updateRequired
-        ? t("profile.hc_update")
-        : !a.available
-          ? t("profile.hc_unavailable")
-          : a.granted
-            ? t("profile.hc_connected")
-            : t("profile.hc_missing");
+    void health.availability().then((a) => {
+      status.textContent = !a.native
+        ? t("profile.hc_web")
+        : a.updateRequired
+          ? t("profile.hc_update")
+          : !a.available
+            ? t("profile.hc_unavailable")
+            : a.granted
+              ? t("profile.hc_connected")
+              : t("profile.hc_missing");
+    });
+  }
+  refreshHcStatus();
+  // Refresh when the user comes back from Health Connect after a manual grant.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshHcStatus();
   });
 
   onConnectionChange(() => ctx.rerender());

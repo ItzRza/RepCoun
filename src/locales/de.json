@@ -199,6 +199,7 @@
   "tip.mc": "Ziehe die Knie schnell zur Brust, während die Hüften tief bleiben.",
   "tip.bridge": "Drücke über die Ferse und halte oben eine Sekunde lang an.",
   "profile.hc_missing": "Nicht verbunden",
+  "profile.hc_manual": "Der Berechtigungsdialog wurde blockiert. Erteile RepCoun auf dem geöffneten Health-Connect-Bildschirm Zugriff und tippe dann erneut auf Verbinden.",
   "profile.advanced": "Erweitert",
   "profile.advanced_desc": "RepCoun funktioniert komplett offline. Dieses sind optionale Extras für Power-User.",
   "profile.cloud_assist_desc": "Sendet ein Kamera-Bild an deinen eigenen KI-Server zur Übungserkennung. Funktioniert auch ohne.",

@@ -228,6 +228,11 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       return;
     }
     const r = await health.requestPermissions();
+    if (r.manual) {
+      // Permission dialog blocked — Health Connect's own screen is open now.
+      ctx.toast(t("profile.hc_manual"), "info");
+      return;
+    }
     if (r.reason === "update") {
       if (title) title.textContent = t("profile.hc_update");
       ctx.toast(t("profile.hc_update"), "bad");
@@ -261,20 +266,27 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
     );
   }
 
-  void health.availability().then((a) => {
+  function refreshHc() {
     const title = root.querySelector("#hc-title");
     const btn = root.querySelector("#hc-btn");
-    if (a.updateRequired && btn) btn.textContent = t("profile.hc_update_btn");
-    if (!title) return;
-    title.textContent = !a.native
-      ? t("profile.hc_web")
-      : a.updateRequired
-        ? t("profile.hc_update")
-        : !a.available
-          ? t("profile.hc_unavailable")
-          : a.granted
-            ? t("profile.hc_connected")
-            : t("home.hc_missing");
+    void health.availability().then((a) => {
+      if (a.updateRequired && btn) btn.textContent = t("profile.hc_update_btn");
+      if (!title) return;
+      title.textContent = !a.native
+        ? t("profile.hc_web")
+        : a.updateRequired
+          ? t("profile.hc_update")
+          : !a.available
+            ? t("profile.hc_unavailable")
+            : a.granted
+              ? t("profile.hc_connected")
+              : t("home.hc_missing");
+    });
+  }
+  refreshHc();
+  // Refresh when the user comes back from Health Connect after a manual grant.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshHc();
   });
 }
 

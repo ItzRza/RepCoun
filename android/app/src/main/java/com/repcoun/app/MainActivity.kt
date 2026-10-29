@@ -2,8 +2,10 @@ package com.repcoun.app
 
 import android.Manifest
 import android.app.PictureInPictureParams
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Rational
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,7 +37,16 @@ class MainActivity : BridgeActivity() {
             "repcoun.hc",
             HealthPermissionsRequestContract()
         ) { granted ->
-            RepCounPlugin.resolveHc(granted.isNotEmpty())
+            val elapsed = SystemClock.elapsedRealtime() - RepCounPlugin.hcRequestedAtMs
+            if (granted.isEmpty() && elapsed < 1200) {
+                // The result came back instantly with nothing granted — the
+                // system never had time to SHOW the dialog, so it silently
+                // denied it (blocked dialog / "don't ask again" / OEM policy).
+                // Fall back to Health Connect's own permissions screen.
+                RepCounPlugin.resolveHcManual(openHcPermissionsManually())
+            } else {
+                RepCounPlugin.resolveHc(granted.isNotEmpty())
+            }
         }
     }
 
@@ -49,11 +60,31 @@ class MainActivity : BridgeActivity() {
     }
 
     fun launchHcPermissions() {
+        val launcher = hcLauncher
+        if (launcher == null) {
+            RepCounPlugin.resolveHcManual(openHcPermissionsManually())
+            return
+        }
         try {
-            hcLauncher?.launch(RepCounPlugin.HC_PERMISSIONS)
+            launcher.launch(RepCounPlugin.HC_PERMISSIONS)
         } catch (t: Throwable) {
-            // Broken / missing Health Connect on the device — fail gracefully
-            RepCounPlugin.resolveHc(false)
+            // The permission dialog failed to launch on this device — open
+            // Health Connect's own permissions screen instead so the user can
+            // grant access manually instead of hitting a silent dead end.
+            RepCounPlugin.resolveHcManual(openHcPermissionsManually())
+        }
+    }
+
+    /**
+     * Opens Health Connect's permissions dashboard (works on Android 13 with the
+     * Health Connect app and on Android 14+ with the built-in module).
+     */
+    private fun openHcPermissionsManually(): Boolean {
+        return try {
+            startActivity(Intent("android.healthconnect.action.MANAGE_HEALTH_PERMISSIONS"))
+            true
+        } catch (t: Throwable) {
+            false
         }
     }
 

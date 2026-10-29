@@ -67,6 +67,11 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
         return;
       }
       const r = await health.requestPermissions();
+      if (r.manual) {
+        // Permission dialog blocked — Health Connect's own screen is open now.
+        ctx.toast(t("profile.hc_manual"), "info");
+        return;
+      }
       if (r.reason === "update") {
         ctx.toast(t("profile.hc_update"), "bad");
         void health.openHcStore(); // one tap → Play Store to update Health Connect
