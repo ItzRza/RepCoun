@@ -72,6 +72,11 @@ class RepCounPlugin : Plugin() {
         val data = JSObject()
         data.put("version", BuildConfig.VERSION_NAME)
         data.put("build", BuildConfig.VERSION_CODE)
+        // Device diagnostics — visible in Profile → About for support.
+        data.put("android", Build.VERSION.RELEASE)
+        data.put("sdk", Build.VERSION.SDK_INT)
+        data.put("device", "${Build.MANUFACTURER} ${Build.MODEL}")
+        data.put("hcStatus", hcSdkStatus())
         call.resolve(data)
     }
 

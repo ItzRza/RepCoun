@@ -90,6 +90,8 @@
   "workout.cam_error_sub": "Close other apps using the camera, then try again.",
   "workout.cam_permission": "Camera permission blocked",
   "workout.cam_permission_sub": "Allow Camera for RepCoun in Settings, then tap Try again.",
+  "workout.model_error": "AI model failed to load",
+  "workout.model_error_sub": "Close the app fully and open it again. If it keeps happening, install the newest RepCoun build.",
   "workout.switch": "Switch to {exercise}?",
   "workout.rejects": "Rejects bad reps",
   "workout.all_reps": "Counts all good reps",

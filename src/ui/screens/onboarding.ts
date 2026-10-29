@@ -40,7 +40,14 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
           ${step === 3 ? t("onboard.start") : t("common.next")}
         </button>
         ${step === 3 ? `<button class="btn ghost block" style="margin-top:10px;background:transparent;border:none" data-a="skip">${t("common.skip") ?? "Skip"}</button>` : ""}
+        <div class="tiny" id="ob-build" style="text-align:center;margin-top:14px;opacity:.65">RepCoun 1.0.0</div>
       </div>`;
+
+    // Show the exact build — if this doesn't say "+bN", the newest APK isn't installed.
+    void health.appVersion().then((v) => {
+      const el = root.querySelector("#ob-build");
+      if (el && v?.version) el.textContent = `RepCoun ${v.version}`;
+    });
 
     root.querySelector("[data-a='next']")!.addEventListener("click", onNext);
     root.querySelector("[data-a='skip']")?.addEventListener("click", () => finish());

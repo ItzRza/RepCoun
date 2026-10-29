@@ -90,6 +90,8 @@
   "workout.cam_error_sub": "Kamerayı kullanan diğer uygulamaları kapat ve tekrar dene.",
   "workout.cam_permission": "Kamera izni engellendi",
   "workout.cam_permission_sub": "Ayarlar'da RepCoun için Kamera'ya izin ver, sonra Tekrar dene'ye dokun.",
+  "workout.model_error": "Yapay zeka modeli yüklenemedi",
+  "workout.model_error_sub": "Uygulamayı tamamen kapatıp aç. Tekrarlarsa en yeni RepCoun sürümünü kur.",
   "workout.switch": "{exercise} üzerine geçilsin mi?",
   "workout.rejects": "Hatalı tekrarları eler",
   "workout.all_reps": "Tüm geçerli tekrarları sayar",

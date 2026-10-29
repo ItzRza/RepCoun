@@ -90,6 +90,8 @@
   "workout.cam_error_sub": "Schließe andere Apps, die die Kamera verwenden, und versuche es erneut.",
   "workout.cam_permission": "Kameralberechtigung blockiert",
   "workout.cam_permission_sub": "Erlaube RepCoun die Kamera in den Einstellungen und tippe dann auf Erneut versuchen.",
+  "workout.model_error": "KI-Modell konnte nicht geladen werden",
+  "workout.model_error_sub": "Schließe die App komplett und öffne sie erneut. Wenn es weiterhin auftritt, installiere die neueste RepCoun-Version.",
   "workout.switch": "Zu {exercise} wechseln?",
   "workout.rejects": "Schlechte Wdh. werden verworfen",
   "workout.all_reps": "Zählt alle guten Wiederholungen",

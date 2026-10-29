@@ -15,7 +15,14 @@ export interface HcAvailability {
 
 type Plugin = {
   requestCamera(): Promise<{ granted: boolean }>;
-  appVersion(): Promise<{ version?: string; build?: number }>;
+  appVersion(): Promise<{
+    version?: string;
+    build?: number;
+    android?: string;
+    sdk?: number;
+    device?: string;
+    hcStatus?: number;
+  }>;
   hcAvailability(): Promise<{ available: boolean; updateRequired?: boolean; status?: number }>;
   hcRequestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable"; manual?: boolean }>;
   hcOpenStore(): Promise<void>;
@@ -76,13 +83,28 @@ export const health = {
     return plugin() !== null;
   },
 
-  /** Version + build number from the APK (e.g. "1.0.0+b12"). Null in a browser. */
-  async appVersion(): Promise<{ version: string; build: number } | null> {
+  /** Version + build + device info from the APK (e.g. "1.0.0+b13"). Null in a browser. */
+  async appVersion(): Promise<{
+    version: string;
+    build: number;
+    android?: string;
+    sdk?: number;
+    device?: string;
+    hcStatus?: number;
+  } | null> {
     const p = plugin();
     if (!p) return null;
     try {
       const r = await p.appVersion();
-      if (r?.version) return { version: r.version, build: r.build ?? 0 };
+      if (r?.version)
+        return {
+          version: r.version,
+          build: r.build ?? 0,
+          android: r.android,
+          sdk: r.sdk,
+          device: r.device,
+          hcStatus: r.hcStatus,
+        };
       return null;
     } catch {
       return null;

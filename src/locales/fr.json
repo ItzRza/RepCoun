@@ -90,6 +90,8 @@
   "workout.cam_error_sub": "Fermez les autres applications utilisant la caméra, puis réessayez.",
   "workout.cam_permission": "Permission caméra bloquée",
   "workout.cam_permission_sub": "Autorisez la caméra pour RepCoun dans Réglages, puis touchez Réessayer.",
+  "workout.model_error": "Le modèle d'IA n'a pas pu se charger",
+  "workout.model_error_sub": "Fermez complètement l'app puis rouvrez-la. Si cela continue, installez la dernière version de RepCoun.",
   "workout.switch": "Passer à {exercise} ?",
   "workout.rejects": "Rejette les mauvaises répétitions",
   "workout.all_reps": "Compte toutes les bonnes répétitions",

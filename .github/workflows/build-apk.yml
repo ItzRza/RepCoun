@@ -12,6 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write # publish the APK as a public release asset
 
     steps:
       - name: Checkout
@@ -66,10 +68,27 @@ jobs:
           if [ -z "$KERR" ]; then KERR=$( (grep -A 20 'What went wrong' gradle.log 2>/dev/null || tail -n 40 gradle.log) | head -40 | sed 's/$/%0A/' | tr -d '\n'); fi
           echo "::error title=Gradle build failed::${KERR}"
 
+      - name: Name the APK
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/RepCoun.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: RepCoun-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/RepCoun.apk
           if-no-files-found: error
           retention-days: 30
+
+      # Public download link (no GitHub account needed) — can be opened on any
+      # phone and shared in WhatsApp etc.
+      - name: Publish public APK release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: RepCoun 1.0.0+b${{ github.run_number }}
+          files: android/app/build/outputs/apk/debug/RepCoun.apk
+          body: |
+            RepCoun **1.0.0+b${{ github.run_number }}** (build ${{ github.run_number }}).
+
+            **Install:** first UNINSTALL the old RepCoun, then open this APK file to install.
+            The build number is shown at the bottom of the register/onboarding screen and in Profile → About.

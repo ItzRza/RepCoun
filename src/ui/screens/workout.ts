@@ -104,6 +104,8 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   let engine: PoseEngine | null = null;
   let stream: MediaStream | null = null;
   let camDenied = false; // camera permission blocked by the phone (needs Settings)
+  let bootError: "camera" | "model" = "camera"; // which boot step failed
+  let bootDiag = ""; // underlying error, shown for support/diagnostics
   let detector: RepCounter | null = null;
   let auto = new AutoDetector();
   let calories = new CalorieTracker({ weightKg: settings.weightKg, age: settings.age, sex: settings.sex });
@@ -205,7 +207,13 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   };
 
   /* -------------------------------- camera -------------------------------- */
+  function describeErr(e: unknown): string {
+    const err = e as { name?: string; message?: string } | null;
+    return `${err?.name ?? "Error"}${err?.message ? `: ${err.message}` : ""}`;
+  }
+
   async function startCamera() {
+    stopCamera(); // release a camera left running by a previous attempt
     const granted = await health.cameraPermission();
     if (health.isNative() && !granted) {
       // Some phones auto-block the camera permission dialog and it can never be
@@ -223,6 +231,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
       })
       .catch((e: unknown) => {
         camDenied = (e as { name?: string })?.name === "NotAllowedError";
+        bootDiag = describeErr(e);
         throw e;
       });
     video.srcObject = stream;
@@ -439,12 +448,22 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   function showError() {
     loadingEl.classList.add("hidden");
     if (overlay.querySelector(".cam-error")) return;
+    const kind = camDenied ? "permission" : bootError;
+    const title =
+      kind === "permission" ? t("workout.cam_permission")
+      : kind === "model" ? t("workout.model_error")
+      : t("workout.cam_error");
+    const sub =
+      kind === "permission" ? t("workout.cam_permission_sub")
+      : kind === "model" ? t("workout.model_error_sub")
+      : t("workout.cam_error_sub");
     const err = h(`
       <div class="cam-error">
         <div class="logo-mark" style="background:#2a2a36">${icons.camera}</div>
-        <div class="h2">${t(camDenied ? "workout.cam_permission" : "workout.cam_error")}</div>
-        <div class="sub" style="color:rgba(255,255,255,.65)">${t(camDenied ? "workout.cam_permission_sub" : "workout.cam_error_sub")}</div>
-        ${camDenied ? `<button class="btn primary" data-a="settings" style="background:#fff;color:#4c2fd6">${t("common.settings")}</button>` : ""}
+        <div class="h2">${title}</div>
+        <div class="sub" style="color:rgba(255,255,255,.65)">${sub}</div>
+        ${bootDiag ? `<div class="tiny" style="color:rgba(255,255,255,.42);margin-top:8px">${esc(bootDiag)}</div>` : ""}
+        ${kind === "permission" ? `<button class="btn primary" data-a="settings" style="background:#fff;color:#4c2fd6">${t("common.settings")}</button>` : ""}
         <button class="btn primary" data-a="retry">${t("common.retry")}</button>
         <button class="btn ghost" data-a="exit" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.2)">${t("common.close")}</button>
       </div>`);
@@ -462,15 +481,20 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
 
   /* --------------------------------- boot --------------------------------- */
   async function boot() {
+    bootDiag = "";
+    bootError = "camera";
     try {
       await startCamera();
-    } catch {
+    } catch (e) {
+      if (!bootDiag) bootDiag = describeErr(e);
       showError();
       return;
     }
+    bootError = "model";
     try {
       engine = await PoseEngine.create({ model: store.getSettings().model });
-    } catch {
+    } catch (e) {
+      bootDiag = describeErr(e);
       showError();
       return;
     }

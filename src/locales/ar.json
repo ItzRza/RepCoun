@@ -90,6 +90,8 @@
   "workout.cam_error_sub": "أغلق التطبيقات الأخرى التي تستخدم الكاميرا ثم حاول مجددًا.",
   "workout.cam_permission": "إذن الكاميرا محجوب",
   "workout.cam_permission_sub": "امنح RepCoun إذن الكاميرا من الإعدادات ثم اضغط على إعادة المحاولة.",
+  "workout.model_error": "تعذر تحميل نموذج الذكاء الاصطناعي",
+  "workout.model_error_sub": "أغلق التطبيق بالكامل ثم افتحه مجددًا. إذا استمرت المشكلة، قم بتثبيت أحدث إصدار من RepCoun.",
   "workout.switch": "الانتقال إلى {exercise}؟",
   "workout.rejects": "يرفض التكرارات الخاطئة",
   "workout.all_reps": "يعدّ كل التكرارات الصحيحة",
