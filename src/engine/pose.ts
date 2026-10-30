@@ -24,30 +24,39 @@ function errText(e: unknown): string {
 }
 
 /**
- * Runs HEAD checks on every bundled file after a failure, so the thrown error
- * says exactly what is missing (e.g. "404 vision_wasm_internal.wasm") instead
- * of a generic, messageless error.
+ * After a failure, fetch every bundled file for real (status, size, magic
+ * bytes) and report wasm support + WebView version — so the thrown error says
+ * exactly what is broken instead of a generic, messageless error.
  */
 async function describeFailure(model: "full" | "lite", lastErr: unknown): Promise<Error> {
-  const names = [
-    `${WASM_DIR}vision_wasm_internal.js`,
-    `${WASM_DIR}vision_wasm_nosimd_internal.js`,
+  const files = [
     `${WASM_DIR}vision_wasm_internal.wasm`,
     `${WASM_DIR}vision_wasm_nosimd_internal.wasm`,
     modelUrl(model),
   ];
-  const problems: string[] = [];
-  for (const url of names) {
+  const probes: string[] = [];
+  for (const url of files) {
     const short = url.split("/").pop();
     try {
-      const r = await fetch(url, { method: "HEAD" });
-      if (!r.ok) problems.push(`${short} → HTTP ${r.status}`);
-    } catch {
-      problems.push(`${short} → fetch failed`);
+      const r = await fetch(url);
+      const buf = new Uint8Array(await r.arrayBuffer());
+      const head = Array.from(buf.slice(0, 4))
+        .map((b) => b.toString(16))
+        .join("");
+      // 0061736d = "\0asm" — a valid WebAssembly binary starts with it.
+      probes.push(`${short}→${r.status}/${buf.length}b/${head === "0061736d" ? "wasm-ok" : head}`);
+    } catch (e) {
+      probes.push(`${short}→${errText(e).slice(0, 60)}`);
     }
   }
-  const base = errText(lastErr);
-  return new Error(problems.length ? `${base} [${problems.join("; ")}]` : base);
+  let wa = "?";
+  try {
+    wa = typeof WebAssembly === "object" ? "yes" : "NO";
+  } catch {
+    wa = "NO";
+  }
+  const ua = navigator.userAgent.replace(/[();]/g, "").slice(-70);
+  return new Error(`${errText(lastErr)} | wasm=${wa} | ${probes.join(" ")} | ${ua}`);
 }
 
 export class PoseEngine {
@@ -59,38 +68,63 @@ export class PoseEngine {
 
   static async create(opts: PoseEngineOptions): Promise<PoseEngine> {
     const engine = new PoseEngine();
-    // Try the requested model first, then fall back to the smaller "lite" one —
-    // and on each model try GPU first, then CPU. Only give up when all fail.
+    // Try the requested model first, then fall back to "lite". For each model:
+    // the library's own wasm variant, then BOTH variants explicitly (SIMD and
+    // no-SIMD) — its SIMD detection can claim support while the SIMD build
+    // still fails to instantiate on some WebViews, and then it never tries the
+    // no-SIMD build. GPU first, then CPU. Fetch the model ourselves as a
+    // buffer so a broken asset fetch cannot fail silently.
     const models: Array<"full" | "lite"> = opts.model === "full" ? ["full", "lite"] : ["lite"];
-    let lastErr: unknown = null;
+    type Fileset = { wasmLoaderPath: string; wasmBinaryPath: string };
+    const filesets: Fileset[] = [];
+    try {
+      filesets.push((await FilesetResolver.forVisionTasks(WASM_DIR)) as Fileset);
+    } catch {
+      /* keep the explicit ones */
+    }
+    for (const v of ["vision_wasm_internal", "vision_wasm_nosimd_internal"]) {
+      filesets.push({
+        wasmLoaderPath: `${WASM_DIR}${v}.js`,
+        wasmBinaryPath: `${WASM_DIR}${v}.wasm`,
+      });
+    }
 
+    let lastErr: unknown = null;
     for (const model of models) {
-      let fileset: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>;
+      let buffer: ArrayBuffer | undefined;
       try {
-        fileset = await FilesetResolver.forVisionTasks(WASM_DIR);
+        buffer = await (await fetch(modelUrl(model))).arrayBuffer();
       } catch (e) {
-        lastErr = e; // WASM loader itself failed — no point trying more models
-        break;
+        lastErr = e;
       }
-      for (const delegate of ["GPU", "CPU"] as const) {
-        try {
-          engine.landmarker = await engine.make(fileset, model, delegate);
-          engine.delegate = delegate;
-          return engine;
-        } catch (e) {
-          lastErr = e;
+      for (const fileset of filesets) {
+        for (const delegate of ["GPU", "CPU"] as const) {
+          try {
+            engine.landmarker = await engine.make(fileset, buffer, model, delegate);
+            engine.delegate = delegate;
+            return engine;
+          } catch (e) {
+            lastErr = e;
+          }
         }
       }
     }
 
-    // Everything failed — build a PRECISE error (which file is missing/broken)
-    // so one screenshot of the error screen is enough to diagnose.
+    // Everything failed — throw a PRECISE error: what broke + probe of every
+    // bundled file (status/size/magic bytes) + wasm support + WebView version.
     throw await describeFailure(opts.model, lastErr);
   }
 
-  private make(fileset: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>, model: "full" | "lite", delegate: "GPU" | "CPU") {
+  private make(
+    fileset: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>,
+    buffer: ArrayBuffer | undefined,
+    model: "full" | "lite",
+    delegate: "GPU" | "CPU"
+  ) {
     return PoseLandmarker.createFromOptions(fileset, {
-      baseOptions: { modelAssetPath: modelUrl(model), delegate },
+      baseOptions: buffer
+        ? { modelAssetBuffer: new Uint8Array(buffer), delegate }
+        : { modelAssetPath: modelUrl(model), delegate },
       runningMode: "VIDEO",
       numPoses: 1,
       minPoseDetectionConfidence: 0.5,
@@ -121,7 +155,8 @@ export class PoseEngine {
 
   async switchModel(model: "full" | "lite") {
     const fileset = await FilesetResolver.forVisionTasks(WASM_DIR);
-    const next = await this.make(fileset, model, this.delegate);
+    const buffer = await (await fetch(modelUrl(model))).arrayBuffer();
+    const next = await this.make(fileset, buffer, model, this.delegate);
     this.landmarker?.close();
     this.landmarker = next;
   }

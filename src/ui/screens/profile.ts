@@ -276,8 +276,10 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       `<div class="h2" style="margin-bottom:6px">Logs</div>
        <div class="sub" style="margin-bottom:10px">Tap Copy, then paste it to support.</div>
        <textarea class="input" id="logbox" readonly style="height:280px;font-family:monospace;font-size:11px">${esc(logText())}</textarea>
-       <button class="btn primary block" style="margin-top:12px" data-a="copy">Copy logs</button>`,
-      (sheet) => {
+       <button class="btn primary block" style="margin-top:12px" data-a="copy">Copy logs</button>
+       <button class="btn ghost block" style="margin-top:10px" data-a="close">Close</button>`,
+      (sheet, closeFn) => {
+        sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
         sheet.querySelector('[data-a="copy"]')!.addEventListener("click", () => {
           const box = sheet.querySelector("#logbox") as HTMLTextAreaElement;
           box.select();
@@ -315,7 +317,16 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
     const title = root.querySelector("#hc-title");
     const btn = root.querySelector("#hc-btn");
     void health.availability().then((a) => {
-      if (a.updateRequired && btn) btn.textContent = t("profile.hc_update_btn");
+      if (btn instanceof HTMLElement) {
+        if (a.granted) {
+          // Already connected — show the state instead of a dead button.
+          btn.textContent = `✓ ${t("home.hc_connected")}`;
+          btn.setAttribute("disabled", "true");
+          btn.style.opacity = "0.85";
+        } else if (a.updateRequired) {
+          btn.textContent = t("profile.hc_update_btn");
+        }
+      }
       if (!title) return;
       title.textContent = !a.native
         ? t("profile.hc_web")
