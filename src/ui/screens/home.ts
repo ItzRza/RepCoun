@@ -186,6 +186,18 @@ export function renderHome(root: HTMLElement, ctx: Ctx) {
     }
     status.textContent = r.granted ? t("home.hc_connected") : t("profile.hc_missing");
     ctx.toast(r.granted ? t("home.hc_connected") : t("profile.hc_missing"), r.granted ? "good" : "bad");
+    if (!r.granted) showHcDiag(ctx);
+  }
+
+  /** One-line Health Connect diagnosis in a toast — a screenshot of it pinpoints the cause. */
+  function showHcDiag(ctx: Ctx) {
+    void health.hcDiag().then((d) => {
+      if (!d) return;
+      ctx.toast(
+        `HC ${d.sdkStr} · ${d.count}/${d.total} · err: ${d.grantError || "none"} · dialog: ${d.canRequest ? "ok" : "missing"}`,
+        "info"
+      );
+    });
   }
 
   function refreshHcStatus() {

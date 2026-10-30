@@ -111,6 +111,15 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
       }
       hcGranted = r.granted;
       ctx.toast(hcGranted ? t("profile.hc_connected") : t("profile.hc_missing"), hcGranted ? "good" : "bad");
+      if (!hcGranted) {
+        void health.hcDiag().then((d) => {
+          if (!d) return;
+          ctx.toast(
+            `HC ${d.sdkStr} · ${d.count}/${d.total} · err: ${d.grantError || "none"} · dialog: ${d.canRequest ? "ok" : "missing"}`,
+            "info"
+          );
+        });
+      }
       draw();
     });
   }

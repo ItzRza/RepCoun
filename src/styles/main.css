@@ -202,6 +202,24 @@ select {
   gap: 6px;
 }
 
+/* No text may ever overflow its box, in any language */
+.card .row > div,
+.list-row > div,
+.stat > div,
+.rank-hero > div {
+  min-width: 0;
+}
+.h1, .h2, .h3, .sub, .tiny, .badge, .btn {
+  overflow-wrap: anywhere;
+}
+.btn {
+  white-space: normal;
+}
+.badge {
+  max-width: 100%;
+  white-space: normal;
+}
+
 .spacer {
   flex: 1;
 }

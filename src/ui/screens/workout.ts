@@ -216,35 +216,40 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
 
   async function startCamera() {
     stopCamera(); // release a camera left running by a previous attempt
-    // Ask for the camera directly through getUserMedia: Android's WebView shows
-    // the system permission dialog itself (reliable on the user's device, unlike
-    // our own native dialog). A 12s timeout guards against phones that swallow
-    // the dialog and leave the request hanging forever.
-    let ask: Promise<MediaStream> | null = null;
-    try {
-      ask = navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
-      const timeout = new Promise<never>((_, reject) => {
-        const id = window.setTimeout(
-          () => reject({ name: "TimeoutError", message: "camera permission dialog never answered" }),
-          12000
-        );
-        ask!.then(() => window.clearTimeout(id), () => window.clearTimeout(id));
-      });
-      stream = await Promise.race([ask, timeout]);
-    } catch (e) {
-      const name = (e as { name?: string })?.name;
-      camDenied = name === "NotAllowedError" || name === "TimeoutError";
-      bootDiag = describeErr(e);
-      // Blocked → open the app settings page so the user can allow Camera
-      // there (some phones never show the permission dialog at all).
-      if (camDenied) {
+    camDenied = false;
+    // Rewritten from zero: try the SIMPLEST request first ({video:true}), then
+    // the preferred facing. Each attempt gets a 12s timeout so a silently
+    // swallowed permission dialog can never hang the workout forever.
+    const attempts: MediaStreamConstraints[] = [{ video: true }, { video: { facingMode: facing } }];
+    let lastErr: unknown = null;
+    for (const constraints of attempts) {
+      let ask: Promise<MediaStream> | null = null;
+      try {
+        ask = navigator.mediaDevices.getUserMedia(constraints);
+        const timeout = new Promise<never>((_, reject) => {
+          const id = window.setTimeout(
+            () => reject({ name: "TimeoutError", message: "camera permission dialog never answered" }),
+            12000
+          );
+          ask!.then(() => window.clearTimeout(id), () => window.clearTimeout(id));
+        });
+        stream = await Promise.race([ask, timeout]);
+        break;
+      } catch (e) {
+        lastErr = e;
+        const name = (e as { name?: string })?.name;
         if (ask) ask.then((s) => s.getTracks().forEach((tr) => tr.stop()), () => {});
-        if (health.isNative()) void health.openAppSettings();
+        // No permission / dialog swallowed → retrying cannot help.
+        if (name === "NotAllowedError" || name === "TimeoutError") break;
       }
-      throw e;
+    }
+    if (!stream) {
+      const name = (lastErr as { name?: string })?.name;
+      camDenied = name === "NotAllowedError" || name === "TimeoutError";
+      const nav = navigator as unknown as { mediaDevices?: unknown };
+      bootDiag = `media=${nav.mediaDevices ? "ok" : "MISSING"} secure=${window.isSecureContext ? "yes" : "no"} ${describeErr(lastErr)}`;
+      if (camDenied && health.isNative()) void health.openAppSettings();
+      throw lastErr ?? new Error("camera");
     }
     video.srcObject = stream;
     await video.play().catch(() => {});

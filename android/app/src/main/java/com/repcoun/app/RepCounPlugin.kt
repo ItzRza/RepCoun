@@ -134,16 +134,34 @@ class RepCounPlugin : Plugin() {
             data.put("full", count >= HC_PERMISSIONS.size)
             data.put("count", count)
             data.put("total", HC_PERMISSIONS.size)
+            data.put("error", grantError)
+            val missing = org.json.JSONArray()
+            for (p in HC_PERMISSIONS) {
+                if (p !in grantedSet) missing.put(p.removePrefix("android.permission.health."))
+            }
+            data.put("missing", missing)
             call.resolve(data)
         }
     }
+
+    /** Last error from reading grants — surfaced in diagnostics instead of hiding. */
+    @Volatile
+    private var grantError: String = ""
+
+    /** Permission strings actually granted right now (empty on error). */
+    @Volatile
+    private var grantedSet: Set<String> = emptySet()
 
     /** How many of RepCoun's Health Connect permissions are granted right now. */
     private fun grantedCount(): Int = try {
         val client = HealthConnectClient.getOrCreate(io())
         val granted = runBlocking { client.permissionController.getGrantedPermissions() }
+        grantedSet = granted
+        grantError = ""
         HC_PERMISSIONS.count { it in granted }
     } catch (t: Throwable) {
+        grantedSet = emptySet()
+        grantError = "${t.javaClass.simpleName}: ${t.message}"
         0
     }
 
@@ -211,6 +229,70 @@ class RepCounPlugin : Plugin() {
             }
         }
         call.resolve(JSObject())
+    }
+
+    /**
+     * Full Health Connect self-diagnosis. Displayed in the app, so one
+     * screenshot shows exactly what is broken on the device.
+     */
+    @PluginMethod
+    fun hcDiag(call: PluginCall) {
+        executor.execute {
+            val d = JSObject()
+            val sdk = hcSdkStatus()
+            d.put("sdk", sdk)
+            d.put("sdkStr", if (sdk == 0) "available" else if (sdk == 2) "needs-update" else "unavailable")
+            var provider = false
+            try {
+                io().packageManager.getPackageInfo("com.google.android.apps.healthdata", 0)
+                provider = true
+            } catch (ignored: Throwable) {
+            }
+            d.put("providerInstalled", provider)
+            val count = if (sdk == 0) grantedCount() else 0
+            d.put("grantError", grantError)
+            d.put("count", count)
+            d.put("total", HC_PERMISSIONS.size)
+            val grantedArr = org.json.JSONArray()
+            for (p in grantedSet) grantedArr.put(p.removePrefix("android.permission.health."))
+            d.put("grantedList", grantedArr)
+            // Can the system even show the permission screens on this device?
+            var canRequest = false
+            try {
+                val i = Intent("android.healthconnect.action.REQUEST_PERMISSIONS")
+                    .setPackage("com.google.android.apps.healthdata")
+                canRequest = i.resolveActivity(io().packageManager) != null
+            } catch (ignored: Throwable) {
+            }
+            d.put("canRequest", canRequest)
+            var canManage = false
+            try {
+                val i = Intent("android.healthconnect.action.MANAGE_HEALTH_PERMISSIONS")
+                canManage = i.resolveActivity(io().packageManager) != null
+            } catch (ignored: Throwable) {
+            }
+            d.put("canManage", canManage)
+            call.resolve(d)
+        }
+    }
+
+    /** Camera self-diagnosis (permission + hardware). */
+    @PluginMethod
+    fun camDiag(call: PluginCall) {
+        val d = JSObject()
+        val granted = ContextCompat.checkSelfPermission(
+            io(), android.Manifest.permission.CAMERA
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        d.put("permGranted", granted)
+        var hasCam = false
+        try {
+            hasCam = io().packageManager
+                .hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY)
+        } catch (ignored: Throwable) {
+        }
+        d.put("hasCamera", hasCam)
+        d.put("sdk", Build.VERSION.SDK_INT)
+        call.resolve(d)
     }
 
     @PluginMethod

@@ -27,7 +27,9 @@ type Plugin = {
   hcAvailability(): Promise<{ available: boolean; updateRequired?: boolean; status?: number }>;
   hcRequestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable"; manual?: boolean }>;
   hcOpenStore(): Promise<void>;
-  hcStatus(): Promise<{ granted: boolean; full?: boolean; count?: number; total?: number }>;
+  hcStatus(): Promise<{ granted: boolean; full?: boolean; count?: number; total?: number; error?: string; missing?: string[] }>;
+  hcDiag(): Promise<HcDiag>;
+  camDiag(): Promise<{ permGranted: boolean; hasCamera: boolean; sdk: number }>;
   hcReadHeartRate(): Promise<{ bpm: number | null; at: number | null }>;
   hcReadSessions(o: { days: number }): Promise<{ sessions: HcSession[]; ok: boolean; error?: string }>;
   hcWriteSession(o: {
@@ -50,6 +52,19 @@ export interface HcSession {
   durationSec: number;
   app: string;
   pkg: string;
+}
+
+/** Full Health Connect self-diagnosis (one screenshot = full picture). */
+export interface HcDiag {
+  sdk: number;
+  sdkStr: string;
+  providerInstalled: boolean;
+  grantError: string;
+  count: number;
+  total: number;
+  grantedList: string[];
+  canRequest: boolean;
+  canManage: boolean;
 }
 
 /**
@@ -256,6 +271,28 @@ export const health = {
       await p.openAppSettings();
     } catch {
       /* ignore */
+    }
+  },
+
+  /** Health Connect self-diagnosis (null outside the APK). */
+  async hcDiag(): Promise<HcDiag | null> {
+    const p = plugin();
+    if (!p) return null;
+    try {
+      return await p.hcDiag();
+    } catch {
+      return null;
+    }
+  },
+
+  /** Camera self-diagnosis (null outside the APK). */
+  async camDiag(): Promise<{ permGranted: boolean; hasCamera: boolean; sdk: number } | null> {
+    const p = plugin();
+    if (!p) return null;
+    try {
+      return await p.camDiag();
+    } catch {
+      return null;
     }
   },
 };

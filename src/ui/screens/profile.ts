@@ -256,6 +256,15 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
     }
     if (title) title.textContent = r.granted ? t("profile.hc_connected") : t("profile.hc_missing");
     ctx.toast(r.granted ? t("profile.hc_connected") : t("profile.hc_missing"), r.granted ? "good" : "bad");
+    if (!r.granted) {
+      void health.hcDiag().then((d) => {
+        if (!d) return;
+        ctx.toast(
+          `HC ${d.sdkStr} · ${d.count}/${d.total} · err: ${d.grantError || "none"} · dialog: ${d.canRequest ? "ok" : "missing"}`,
+          "info"
+        );
+      });
+    }
   }
 
   function clearSheet() {
