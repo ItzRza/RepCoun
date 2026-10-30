@@ -17,3 +17,5 @@ android/app/src/main/assets/public/
 .env
 .env.*
 !.env.example
+
+google-services.json
