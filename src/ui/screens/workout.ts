@@ -13,7 +13,7 @@ import { health, HrMonitor } from "../../services/health";
 import { log } from "../../services/logger";
 import { cloudAssist, getCloudEndpoint, isOnline } from "../../services/online";
 import { store } from "../../data/store";
-import { getLbApi, submitScore } from "../../services/lbapi";
+import { getLbApi, submitScore, uploadProgress } from "../../services/lbapi";
 import { personalRecords } from "../../data/store";
 import { t } from "../../i18n/i18n";
 import { h, $, fmtDuration, haptic, beep, esc } from "../dom";
@@ -30,7 +30,9 @@ const TIP_MAP: Record<string, string> = {
   pushup: "tip.pushup", squat: "tip.squat", situp: "tip.situp", pullup: "tip.pullup",
   jumpingjack: "tip.jack", lunge: "tip.lunge", plank: "tip.plank", bicepcurl: "tip.curl",
   shoulderpress: "tip.press", burpee: "tip.burpee", mountainclimber: "tip.mc",
-  glutebridge: "tip.bridge",
+  glutebridge: "tip.bridge", legraise: "tip.legraise", lateralraise: "tip.lateralraise",
+  wallsit: "tip.wallsit", highknees: "tip.highknees", donkeykick: "tip.donkeykick",
+  hipthrust: "tip.hipthrust",
 };
 
 export function openWorkout(ctx: Ctx, initialExercise?: string) {
@@ -426,9 +428,13 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
         .join("")}</div>` : ""}
       <div class="row" style="margin-top:14px;gap:10px">
         <button class="btn ghost" data-a="discard">${t("workout.discard")}</button>
+        <button class="btn ghost" data-a="share" style="flex:1">Share</button>
         <button class="btn primary" data-a="save">${t("workout.save")}</button>
       </div>`,
       (sheetEl, closeSheet) => {
+        sheetEl.querySelector('[data-a="share"]')?.addEventListener("click", () => {
+          void shareWorkout(count, kcal, durationSec, isTimed);
+        });
         sheetEl.querySelector('[data-a="discard"]')!.addEventListener("click", () => {
           closeSheet();
           close();
@@ -452,6 +458,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
           if (getLbApi().url) {
             const meName = store.getProfile().leaderboardName || store.getProfile().name || "You";
             void submitScore(meName, count);
+            void uploadProgress(meName, session); // progress backup
           }
           closeSheet();
           ctx.toast(t("workout.saved", { kcal }), "good");
@@ -461,6 +468,51 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
       }
     );
     void sheet;
+  }
+
+  /** Render a workout card and open the phone's share sheet (X, Facebook, Instagram…). */
+  async function shareWorkout(count: number, kcal: number, durationSec: number, isTimed: boolean) {
+    try {
+      const c = document.createElement("canvas");
+      c.width = 1080;
+      c.height = 1350; // portrait — good for Instagram stories/posts
+      const x = c.getContext("2d")!;
+      const g = x.createLinearGradient(0, 0, c.width, c.height);
+      g.addColorStop(0, "#7c5cff");
+      g.addColorStop(1, "#2b1b6b");
+      x.fillStyle = g;
+      x.fillRect(0, 0, c.width, c.height);
+      x.textAlign = "center";
+      x.fillStyle = "#fff";
+      x.font = "bold 60px sans-serif";
+      x.fillText("RepCoun", c.width / 2, 190);
+      x.font = "bold 150px sans-serif";
+      x.fillText(String(count), c.width / 2, 520);
+      x.font = "48px sans-serif";
+      x.fillText(isTimed ? "seconds held" : "reps crushed", c.width / 2, 610);
+      x.fillText(`${kcal} kcal · ${fmtDuration(durationSec)}`, c.width / 2, 700);
+      x.font = "bold 52px sans-serif";
+      x.fillText(current ? t(`exercise.${current.i18n}`) : t("workout.auto"), c.width / 2, 850);
+      x.font = "36px sans-serif";
+      x.fillText("repcoun · ai rep counter", c.width / 2, 1230);
+
+      const blob: Blob | null = await new Promise((res) => c.toBlob((b) => res(b), "image/png"));
+      const nav = navigator as unknown as {
+        canShare?: (d: unknown) => boolean;
+        share?: (d: unknown) => Promise<void>;
+      };
+      const text = `${current ? t(`exercise.${current.i18n}`) : t("workout.auto")}: ${count} ${isTimed ? "s" : t("home.reps")} · ${kcal} kcal — RepCoun`;
+      if (blob && nav.canShare?.({ files: [new File([blob], "repcoun.png", { type: "image/png" })] })) {
+        await nav.share?.({ files: [new File([blob], "repcoun.png", { type: "image/png" })], text, title: "RepCoun" });
+      } else if (nav.share) {
+        await nav.share({ text, title: "RepCoun" });
+      } else {
+        await navigator.clipboard?.writeText(text);
+        ctx.toast("copied — paste it into any app", "good");
+      }
+    } catch {
+      ctx.toast("share failed", "bad");
+    }
   }
 
   function helpSheet() {

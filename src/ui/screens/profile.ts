@@ -8,8 +8,11 @@ import { store, totals } from "../../data/store";
 import { rankOf, setRankNameResolver } from "../../data/leaderboard";
 import { health } from "../../services/health";
 import { logText } from "../../services/logger";
+import { getCustoms, addCustom, deleteCustom, JOINT_LABELS, TrackJoint } from "../../data/custom";
+import { runCalibration } from "../calibrate";
 import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
-import { getLbApi, setLbApi, testLbApi } from "../../services/lbapi";
+import { getLbApi, setLbApi, testLbApi, downloadProgress } from "../../services/lbapi";
+import type { Session } from "../../types";
 
 export function renderProfile(root: HTMLElement, ctx: Ctx) {
   const s = store.getSettings();
@@ -58,6 +61,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       ${toggleRow("trackToHc", icons.heart, t("profile.track_sync"), t("profile.track_sync_desc"), s.trackToHc)}
       ${row("goal", icons.target, t("profile.goal"), String(s.repGoal))}
       ${row("depth", icons.target, "Rep depth %", `${s.repDepthPct}%`)}
+      ${row("myex", icons.trophy, "My exercises", String(getCustoms().length))}
       ${row("camera", icons.camera_flip, t("profile.camera"), s.cameraFacing === "user" ? t("profile.front") : t("profile.back"))}
     </div>
 
@@ -146,6 +150,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
           ctx.toast(t("common.save"), "good");
         }, t("profile.model_desc"));
       case "goal": return numSheet(t("profile.goal"), s.repGoal, t("home.reps"), (v) => ctx.saveSettings({ repGoal: Math.max(10, Math.min(5000, Math.round(v))) }));
+      case "myex": return myExSheet();
       case "depth": return numSheet(
         "Rep depth %",
         s.repDepthPct,
@@ -241,11 +246,34 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
          <button class="btn ghost" data-a="test" style="flex:1">Test</button>
          <button class="btn primary" data-a="save" style="flex:1">${t("common.save")}</button>
        </div>
+       <button class="btn ghost block" style="margin-top:10px" data-a="restore">Restore my workouts from server</button>
        <div class="tiny" id="lb-test" style="margin-top:10px;text-align:center"></div>`,
       (sheet, closeFn) => {
         const read = () => ({
           url: (sheet.querySelector("#f-url") as HTMLInputElement).value.trim(),
           group: (sheet.querySelector("#f-grp") as HTMLInputElement).value.trim(),
+        });
+        sheet.querySelector('[data-a="restore"]')!.addEventListener("click", async () => {
+          const out = sheet.querySelector("#lb-test") as HTMLElement;
+          const { url, group } = read();
+          setLbApi(url, group);
+          out.textContent = "…";
+          const name = store.getProfile().leaderboardName || store.getProfile().name || "You";
+          const sessions = await downloadProgress(name);
+          if (!sessions) {
+            out.textContent = "✗ could not reach the server";
+            return;
+          }
+          const have = new Set(store.getSessions().map((s) => s.id));
+          let added = 0;
+          for (const raw of sessions) {
+            const s = raw as unknown as Session;
+            if (s?.id && !have.has(s.id)) {
+              store.addSession(s);
+              added++;
+            }
+          }
+          out.textContent = `✓ restored ${added} workouts`;
         });
         sheet.querySelector('[data-a="save"]')!.addEventListener("click", () => {
           const { url, group } = read();
@@ -320,6 +348,100 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
         );
       });
     }
+  }
+
+  /** User-created exercises — learned from an 8-second movement recording. */
+  function myExSheet() {
+    const list = getCustoms();
+    ctx.openSheet(
+      `<div class="h2" style="margin-bottom:6px">My exercises</div>
+       <div class="sub" style="margin-bottom:12px">Create your own exercises: show the movement to the camera for 8 seconds and RepCoun learns to count it. They appear in the exercise list of every workout.</div>
+       <div class="list">
+         ${list
+           .map(
+             (c) => `
+         <div class="list-row" style="cursor:default">
+           <div style="flex:1"><div class="h3">${esc(c.name)}</div><div class="tiny">${JOINT_LABELS.find(([j]) => j === c.joint)?.[1] ?? c.joint}</div></div>
+           <button class="btn ghost" data-del="${c.id}" style="padding:8px 12px;min-height:34px">${icons.trash}</button>
+         </div>`
+           )
+           .join("")}
+       </div>
+       <button class="btn primary block" style="margin-top:14px" data-a="new">+ Create exercise</button>`,
+      (sheet, closeFn) => {
+        sheet.querySelectorAll("[data-del]").forEach((b) =>
+          b.addEventListener("click", () => {
+            deleteCustom((b as HTMLElement).dataset.del!);
+            closeFn();
+            myExSheet();
+          })
+        );
+        sheet.querySelector('[data-a="new"]')!.addEventListener("click", () => {
+          closeFn();
+          createExSheet();
+        });
+      }
+    );
+  }
+
+  function createExSheet() {
+    let joint: TrackJoint = "knee";
+    ctx.openSheet(
+      `<div class="h2" style="margin-bottom:10px">New exercise</div>
+       <input class="input" id="ex-name" placeholder="Exercise name (e.g. Kettlebell Swing)">
+       <div class="tiny" style="margin:12px 2px 6px">Which body movement should be counted?</div>
+       <div class="seg" style="flex-wrap:wrap">
+         ${JOINT_LABELS.map(
+           ([j, label], i) =>
+             `<button class="${i === 0 ? "active" : ""}" data-j="${j}" style="flex:1;min-width:96px">${label.split(" (")[0]}</button>`
+         ).join("")}
+       </div>
+       <button class="btn primary block" style="margin-top:16px" data-a="rec">● Record movement (8s)</button>
+       <div class="tiny" id="ex-msg" style="margin-top:10px;text-align:center"></div>`,
+      (sheet) => {
+        sheet.querySelectorAll("[data-j]").forEach((b) =>
+          b.addEventListener("click", () => {
+            joint = (b as HTMLElement).dataset.j as TrackJoint;
+            sheet.querySelectorAll("[data-j]").forEach((x) => x.classList.remove("active"));
+            b.classList.add("active");
+          })
+        );
+        sheet.querySelector('[data-a="rec"]')!.addEventListener("click", async () => {
+          const name = (sheet.querySelector("#ex-name") as HTMLInputElement).value.trim();
+          const msg = sheet.querySelector("#ex-msg") as HTMLElement;
+          if (!name) {
+            msg.textContent = "type a name first";
+            return;
+          }
+          msg.textContent = "get ready — recording starts now…";
+          const rule = await runCalibration(joint);
+          if ("error" in rule) {
+            msg.textContent =
+              rule.error === "camera"
+                ? "camera failed — check camera permission"
+                : rule.error === "small-range"
+                  ? "movement too small — do bigger, full reps"
+                  : rule.error === "no-pose"
+                    ? "body not visible — put the phone further away"
+                    : `failed: ${rule.error}`;
+            return;
+          }
+          addCustom({
+            id: `c${Date.now()}`,
+            name,
+            joint,
+            start: rule.start,
+            top: rule.top,
+            bottom: rule.bottom,
+            minBottomMs: rule.minBottomMs,
+            minRepMs: rule.minRepMs,
+            createdAt: Date.now(),
+          });
+          ctx.toast(`"${name}" learned ✓`, "good");
+          ctx.rerender();
+        });
+      }
+    );
   }
 
   /** Support tool: everything the app did, ready to copy and send. */

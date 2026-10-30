@@ -82,3 +82,37 @@ export async function testLbApi(): Promise<"ok" | "fail" | "no-url"> {
   if (!url) return "no-url";
   return (await fetchStandings()) ? "ok" : "fail";
 }
+
+/** Backup one finished workout to the server (progress sync). */
+export async function uploadProgress(name: string, session: unknown): Promise<boolean> {
+  const { url, group } = getLbApi();
+  if (!url) return false;
+  try {
+    const res = await fetch(`${url}/progress?group=${encodeURIComponent(group)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, session }),
+      signal: timeoutSignal(),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Download this person's backed-up workouts (for restore on a new phone). */
+export async function downloadProgress(name: string): Promise<Array<Record<string, unknown>> | null> {
+  const { url, group } = getLbApi();
+  if (!url) return null;
+  try {
+    const res = await fetch(
+      `${url}/progress?group=${encodeURIComponent(group)}&name=${encodeURIComponent(name)}`,
+      { signal: timeoutSignal() }
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { sessions?: Array<Record<string, unknown>> };
+    return Array.isArray(data.sessions) ? data.sessions : null;
+  } catch {
+    return null;
+  }
+}

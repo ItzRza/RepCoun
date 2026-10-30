@@ -50,11 +50,18 @@ export function detectLang(): string {
   return BUNDLES[nav] ? nav : "en";
 }
 
+/** Labels registered at runtime (custom exercise names). */
+const DYNAMIC: Record<string, string> = {};
+
+export function registerLabel(key: string, value: string) {
+  DYNAMIC[key] = value;
+}
+
 /** Translate: t("home.greeting", {name: "Ali"}) */
 export function t(key: string, vars?: Record<string, string | number>): string {
   const bundle = BUNDLES[current] ?? en;
   const enDict = en as Record<string, string>;
-  let s = bundle[key] ?? enDict[key] ?? key;
+  let s = DYNAMIC[key] ?? bundle[key] ?? enDict[key] ?? key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
       s = s.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));

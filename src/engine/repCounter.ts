@@ -75,7 +75,7 @@ export class RepCounter {
       };
     }
     // Mountain-climbers & similar alternate legs — count each leg separately.
-    const dual = def.id === "mountainclimber";
+    const dual = def.id === "mountainclimber" || def.id === "highknees";
     this.channels = dual ? [makeChannel(), makeChannel()] : [makeChannel()];
   }
 
@@ -99,7 +99,7 @@ export class RepCounter {
 
     // ---- timed holds (plank) ----
     if (this.def.mode === "timed") {
-      const good = f.plankPose >= 0.42 && f.torsoTilt > 55;
+      const good = this.def.holdScore ? this.def.holdScore(f) >= 0.5 : f.plankPose >= 0.42 && f.torsoTilt > 55;
       const dt = this.lastTickAt ? clamp((tMs - this.lastTickAt) / 1000, 0, 1.5) : 0;
       this.lastTickAt = tMs;
       if (good) {

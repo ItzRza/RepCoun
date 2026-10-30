@@ -70,6 +70,8 @@ export interface ExerciseDef {
   minRepMs: number;
   /** auto-detection score for this frame (0..1) */
   score: (f: BodyFeatures) => number;
+  /** for timed exercises (plank, wall sit…): is this frame a valid hold? */
+  holdScore?: (f: BodyFeatures) => number;
   /** human-readable form tip key suffix */
   tip: string;
 }
@@ -197,7 +199,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "squat", i18n: "squat", emoji: "🦵", met: 5.5, kcalPerRep70: 0.33,
     mode: "reps", joint: "knee", start: "high", top: 160, bottom: 103,
     minBottomMs: 180, minRepMs: 620,
-    score: (f) => (standing(f) ? clamp(1 - Math.abs(f.kneeAvg - 168) / 30, 0, 1) * 0.35 : 0),
+    score: (f) => (standing(f) ? clamp(1 - Math.abs(f.kneeAvg - 168) / 30, 0, 1) * 0.8 : 0),
     tip: "squat_tip",
   },
   {
@@ -233,6 +235,7 @@ export const EXERCISES: ExerciseDef[] = [
     mode: "timed", joint: "custom", start: "high", top: 999, bottom: 0,
     minBottomMs: 0, minRepMs: 0,
     score: (f) => clamp(f.plankPose * 0.9 - f.pronePushup * 0.35, 0, 1),
+    holdScore: (f) => (f.plankPose >= 0.42 && f.torsoTilt > 55 ? 1 : 0),
     tip: "plank_tip",
   },
   {
@@ -246,14 +249,14 @@ export const EXERCISES: ExerciseDef[] = [
     id: "shoulderpress", i18n: "shoulderpress", emoji: "🙆", met: 5.0, kcalPerRep70: 0.2,
     mode: "reps", joint: "elbow", start: "low", top: 96, bottom: 160,
     minBottomMs: 160, minRepMs: 650,
-    score: (f) => (standing(f) && f.armAvg > 95 ? 0.45 : 0),
+    score: (f) => (standing(f) && f.armAvg > 95 ? 0.62 : 0),
     tip: "press_tip",
   },
   {
     id: "burpee", i18n: "burpee", emoji: "🔥", met: 9.5, kcalPerRep70: 0.95,
     mode: "reps", joint: "custom", start: "high", top: 48, bottom: 62,
     minBottomMs: 300, minRepMs: 1600,
-    score: (f) => (f.torsoTilt > 55 ? 0.15 : standing(f) ? 0.1 : 0),
+    score: (f) => (f.pronePushup > 0.3 ? 0.35 : standing(f) ? 0.2 : 0),
     tip: "burpee_tip",
   },
   {
@@ -269,6 +272,52 @@ export const EXERCISES: ExerciseDef[] = [
     minBottomMs: 180, minRepMs: 700,
     score: (f) => clamp(f.supineBent * 0.9 - f.pronePushup * 0.5, 0, 1),
     tip: "bridge_tip",
+  },
+  {
+    id: "legraise", i18n: "legraise", emoji: "🦿", met: 3.8, kcalPerRep70: 0.28,
+    mode: "reps", joint: "hip", start: "high", top: 158, bottom: 92,
+    minBottomMs: 180, minRepMs: 700,
+    score: (f) => clamp(
+      (f.torsoTilt > 60 && f.torsoTilt < 118 ? 0.55 : 0) +
+        (f.kneeAvg > 145 ? 0.3 : 0) - f.pronePushup * 0.6 - f.supineBent * 0.35,
+      0, 1),
+    tip: "legraise_tip",
+  },
+  {
+    id: "lateralraise", i18n: "lateralraise", emoji: "🙌", met: 4.0, kcalPerRep70: 0.2,
+    mode: "reps", joint: "arm", start: "low", top: 32, bottom: 82,
+    minBottomMs: 150, minRepMs: 620,
+    score: (f) => (standing(f) && f.elbowAvg > 135 && f.armAvg > 42 && f.armAvg < 130 ? 0.62 : 0),
+    tip: "lateralraise_tip",
+  },
+  {
+    id: "wallsit", i18n: "wallsit", emoji: "🧱", met: 4.0, kcalPerRep70: 0.12,
+    mode: "timed", joint: "custom", start: "high", top: 999, bottom: 0,
+    minBottomMs: 0, minRepMs: 0,
+    score: (f) => (f.kneeAvg > 70 && f.kneeAvg < 125 && f.torsoTilt < 45 ? 0.6 : 0),
+    holdScore: (f) => (f.kneeAvg > 70 && f.kneeAvg < 125 && f.torsoTilt < 45 ? 1 : 0),
+    tip: "wallsit_tip",
+  },
+  {
+    id: "highknees", i18n: "highknees", emoji: "🏃", met: 8.0, kcalPerRep70: 0.2,
+    mode: "reps", joint: "knee", start: "high", top: 150, bottom: 100,
+    minBottomMs: 100, minRepMs: 380,
+    score: () => 0, // looks too much like lunges — counted when selected manually
+    tip: "highknees_tip",
+  },
+  {
+    id: "donkeykick", i18n: "donkeykick", emoji: "🦶", met: 3.2, kcalPerRep70: 0.16,
+    mode: "reps", joint: "hip", start: "low", top: 96, bottom: 148,
+    minBottomMs: 160, minRepMs: 620,
+    score: () => 0, // on hands & knees — counted when selected manually
+    tip: "donkeykick_tip",
+  },
+  {
+    id: "hipthrust", i18n: "hipthrust", emoji: "🍑", met: 3.6, kcalPerRep70: 0.24,
+    mode: "reps", joint: "hip", start: "low", top: 104, bottom: 152,
+    minBottomMs: 180, minRepMs: 700,
+    score: () => 0, // same shape as glute bridge — counted when selected manually
+    tip: "hipthrust_tip",
   },
 ];
 
@@ -288,7 +337,7 @@ export class AutoDetector {
   private streak = 0;
   private current: string | null = null;
 
-  constructor(private consistencyFrames = 22) {}
+  constructor(private consistencyFrames = 16) {}
 
   update(f: BodyFeatures): string | null {
     if (!f.ok) {

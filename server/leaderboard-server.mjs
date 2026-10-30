@@ -62,6 +62,40 @@ http
       return json(res, { entries });
     }
 
+    // Backup / restore workouts (progress sync per person).
+    if (req.method === "POST" && url.pathname === "/progress") {
+      let body = "";
+      req.on("data", (d) => (body += d));
+      req.on("end", () => {
+        try {
+          const { name, session } = JSON.parse(body || "{}");
+          if (!name || !session || !session.id) return json(res, { ok: false }, 400);
+          let row = board.find((e) => e.name === name);
+          if (!row) {
+            row = { name: String(name).slice(0, 24), reps: 0, sessions: [] };
+            board.push(row);
+          }
+          row.sessions = Array.isArray(row.sessions) ? row.sessions : [];
+          if (!row.sessions.some((s) => s.id === session.id)) {
+            row.sessions.unshift(session);
+            row.sessions = row.sessions.slice(0, 300);
+          }
+          db[group] = board;
+          save(db);
+          json(res, { ok: true });
+        } catch {
+          json(res, { ok: false }, 400);
+        }
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/progress") {
+      const name = url.searchParams.get("name");
+      const row = board.find((e) => e.name === name);
+      return json(res, { sessions: row?.sessions ?? [] });
+    }
+
     // Submit a result. Keeps the person's best total reps.
     if (req.method === "POST" && url.pathname === "/score") {
       let body = "";
