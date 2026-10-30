@@ -8,6 +8,8 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithCredential,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   Auth,
@@ -22,7 +24,8 @@ import {
   getDocs,
   Firestore,
 } from "firebase/firestore";
-import { firebaseConfig, cloudConfigured } from "./firebase-config";
+import { firebaseConfig, cloudConfigured, googleWebClientId } from "./firebase-config";
+import { health } from "./health";
 import { Session, Settings } from "../types";
 
 let app: FirebaseApp | null = null;
@@ -81,6 +84,25 @@ export async function signIn(email: string, password: string): Promise<string | 
   if (!auth) return "cloud not configured";
   try {
     await signInWithEmailAndPassword(auth, email, password);
+    return null;
+  } catch (e) {
+    return (e as Error).message;
+  }
+}
+
+/**
+ * Sign in with Google. The native dialog (web popups are blocked in WebViews)
+ * returns an ID token which Firebase trades for a session.
+ */
+export async function signInWithGoogle(): Promise<string | null> {
+  init();
+  if (!auth) return "cloud not configured";
+  if (!googleWebClientId) return "Google Sign-In is not configured yet";
+  const r = await health.googleSignIn(googleWebClientId);
+  if (r.error) return r.error;
+  if (!r.idToken) return "Google gave no ID token";
+  try {
+    await signInWithCredential(auth, GoogleAuthProvider.credential(r.idToken));
     return null;
   } catch (e) {
     return (e as Error).message;

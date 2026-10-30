@@ -12,7 +12,7 @@ import { getCustoms, addCustom, deleteCustom, JOINT_LABELS, TrackJoint } from ".
 import { runCalibration } from "../calibrate";
 import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
 import { getLbApi, setLbApi, testLbApi, downloadProgress } from "../../services/lbapi";
-import { cloudReady, currentUser, signIn, signUp, logOut, restoreSessions, saveUserData } from "../../services/cloud";
+import { cloudReady, currentUser, signIn, signUp, signInWithGoogle, logOut, restoreSessions, saveUserData } from "../../services/cloud";
 import type { Session } from "../../types";
 
 export function renderProfile(root: HTMLElement, ctx: Ctx) {
@@ -405,6 +405,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
          <button class="btn ghost" data-a="in" style="flex:1">Sign in</button>
          <button class="btn primary" data-a="reg" style="flex:1">Create account</button>
        </div>
+       <button class="btn ghost block" style="margin-top:10px" data-a="google">Sign in with Google</button>
        <div class="tiny" id="acc-msg" style="margin-top:10px;text-align:center"></div>`,
       (sheet) => {
         const go = async (register: boolean) => {
@@ -432,6 +433,22 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
         };
         sheet.querySelector('[data-a="in"]')!.addEventListener("click", () => void go(false));
         sheet.querySelector('[data-a="reg"]')!.addEventListener("click", () => void go(true));
+        sheet.querySelector('[data-a="google"]')!.addEventListener("click", async () => {
+          const msg = sheet.querySelector("#acc-msg") as HTMLElement;
+          msg.textContent = "…";
+          const err = await signInWithGoogle();
+          if (err) {
+            msg.textContent = err;
+            return;
+          }
+          void saveUserData(store.getProfile() as unknown as Record<string, unknown>, store.getSettings());
+          const added = await restoreSessions(
+            (s) => store.addSession(s),
+            (id) => store.getSessions().some((x) => x.id === id)
+          );
+          ctx.toast(`signed in${added > 0 ? ` — ${added} workouts restored` : ""}`, "good");
+          ctx.rerender();
+        });
       }
     );
   }

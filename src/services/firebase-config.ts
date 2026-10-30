@@ -46,3 +46,6 @@ export const firebaseConfig = {
 
 /** True once the GitHub secrets (or a local .env) provide the config. */
 export const cloudConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
+
+/** Web client ID for Google Sign-In (Firebase → Authentication → Google). */
+export const googleWebClientId = env.VITE_GOOGLE_WEB_CLIENT_ID ?? "";

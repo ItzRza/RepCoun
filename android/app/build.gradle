@@ -66,6 +66,7 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation "androidx.health.connect:connect-client:1.1.0"
+    implementation "com.google.android.gms:play-services-auth:20.7.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
     implementation project(':capacitor-android')

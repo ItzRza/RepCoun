@@ -27,6 +27,9 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.concurrent.Executors
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 
 /**
  * RepCoun native bridge — camera permission + Health Connect.
@@ -97,6 +100,46 @@ class RepCounPlugin : Plugin() {
             // No settings screen available on this device — ignore
         }
         call.resolve(JSObject())
+    }
+
+    /**
+     * Google Sign-In — returns an ID token that the web side trades for a
+     * Firebase login. Uses the native Google dialog because web popups are
+     * blocked inside Android WebViews.
+     */
+    @PluginMethod
+    fun googleSignIn(call: PluginCall) {
+        val webClientId = call.getString("webClientId") ?: ""
+        if (webClientId.isEmpty()) {
+            val d = JSObject()
+            d.put("error", "Google Sign-In not configured")
+            call.resolve(d)
+            return
+        }
+        val act = activity as? MainActivity
+        if (act == null) {
+            val d = JSObject()
+            d.put("error", "no activity")
+            call.resolve(d)
+            return
+        }
+        googleCall = call
+        try {
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(webClientId)
+                .requestEmail()
+                .build()
+            val intent = GoogleSignIn.getClient(act, gso).signInIntent
+            act.runOnUiThread {
+                try {
+                    act.launchGoogleSignIn(intent)
+                } catch (t: Throwable) {
+                    resolveGoogleError(t.message ?: "google sign-in failed")
+                }
+            }
+        } catch (t: Throwable) {
+            resolveGoogleError(t.message ?: "google sign-in failed")
+        }
     }
 
     /* -------------------------- Health Connect --------------------------- */
@@ -515,6 +558,40 @@ class RepCounPlugin : Plugin() {
                 data.put("manual", openedScreen)
                 call.resolve(data)
             }
+        }
+
+        @Volatile
+        private var googleCall: PluginCall? = null
+
+        /** Result of the native Google Sign-In dialog. */
+        @JvmStatic
+        fun handleGoogleResult(data: Intent?) {
+            try {
+                val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+                val account = task.getResult(ApiException::class.java)
+                val d = JSObject()
+                val token = account?.idToken
+                if (token != null) {
+                    d.put("idToken", token)
+                    d.put("email", account.email ?: "")
+                } else {
+                    d.put("error", "no id token")
+                }
+                googleCall?.resolve(d)
+            } catch (t: Throwable) {
+                val d = JSObject()
+                d.put("error", t.message ?: "google sign-in failed")
+                googleCall?.resolve(d)
+            }
+            googleCall = null
+        }
+
+        @JvmStatic
+        fun resolveGoogleError(msg: String) {
+            val d = JSObject()
+            d.put("error", msg)
+            googleCall?.resolve(d)
+            googleCall = null
         }
 
         /**

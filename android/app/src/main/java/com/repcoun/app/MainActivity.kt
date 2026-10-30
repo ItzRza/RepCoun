@@ -16,6 +16,7 @@ class MainActivity : BridgeActivity() {
 
     private var cameraLauncher: ActivityResultLauncher<Array<String>>? = null
     private var hcLauncher: ActivityResultLauncher<Set<String>>? = null
+    private var googleLauncher: ActivityResultLauncher<Intent>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // CRITICAL: the Capacitor bridge is created INSIDE super.onCreate(), so the
@@ -48,6 +49,22 @@ class MainActivity : BridgeActivity() {
             } else {
                 RepCounPlugin.resolveHc(granted.isNotEmpty())
             }
+        }
+
+        // Google Sign-In (native dialog — web popups are blocked in WebViews)
+        googleLauncher = activityResultRegistry.register(
+            "repcoun.google",
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            RepCounPlugin.handleGoogleResult(result.data)
+        }
+    }
+
+    fun launchGoogleSignIn(intent: Intent) {
+        try {
+            googleLauncher?.launch(intent)
+        } catch (t: Throwable) {
+            RepCounPlugin.resolveGoogleError(t.message ?: "google sign-in failed")
         }
     }
 

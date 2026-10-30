@@ -33,6 +33,7 @@ type Plugin = {
   hcStatus(): Promise<{ granted: boolean; full?: boolean; count?: number; total?: number; error?: string; missing?: string[] }>;
   hcDiag(): Promise<HcDiag>;
   camDiag(): Promise<{ permGranted: boolean; hasCamera: boolean; sdk: number }>;
+  googleSignIn(o: { webClientId: string }): Promise<{ idToken?: string; email?: string; error?: string }>;
   hcReadHeartRate(): Promise<{ bpm: number | null; at: number | null }>;
   hcReadSessions(o: { days: number }): Promise<{ sessions: HcSession[]; ok: boolean; error?: string }>;
   hcWriteSession(o: {
@@ -302,6 +303,17 @@ export const health = {
       return await p.camDiag();
     } catch {
       return null;
+    }
+  },
+
+  /** Native Google Sign-In — returns an ID token for Firebase login. */
+  async googleSignIn(webClientId: string): Promise<{ idToken?: string; email?: string; error?: string }> {
+    const p = plugin();
+    if (!p) return { error: "not native" };
+    try {
+      return await p.googleSignIn({ webClientId });
+    } catch (e) {
+      return { error: errText(e) };
     }
   },
 };
