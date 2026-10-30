@@ -59,8 +59,21 @@ export class RepCounter {
 
   constructor(
     public def: ExerciseDef,
-    private hooks: RepCounterHooks
+    private hooks: RepCounterHooks,
+    depthPct = 100
   ) {
+    // How much of the standard movement counts as one rep: 100 = default
+    // depth, 50 = half reps count, 150 = only deeper-than-default reps.
+    const pct = clamp(depthPct, 20, 150) / 100;
+    if (pct !== 1) {
+      this.def = {
+        ...def,
+        bottom:
+          def.start === "high"
+            ? def.top - (def.top - def.bottom) * pct
+            : def.top + (def.bottom - def.top) * pct,
+      };
+    }
     // Mountain-climbers & similar alternate legs — count each leg separately.
     const dual = def.id === "mountainclimber";
     this.channels = dual ? [makeChannel(), makeChannel()] : [makeChannel()];

@@ -56,6 +56,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       ${toggleRow("sound", icons.star, t("profile.sound"), "", s.sound && s.haptics)}
       ${toggleRow("trackToHc", icons.heart, t("profile.track_sync"), t("profile.track_sync_desc"), s.trackToHc)}
       ${row("goal", icons.target, t("profile.goal"), String(s.repGoal))}
+      ${row("depth", icons.target, "Rep depth %", `${s.repDepthPct}%`)}
       ${row("camera", icons.camera_flip, t("profile.camera"), s.cameraFacing === "user" ? t("profile.front") : t("profile.back"))}
     </div>
 
@@ -144,6 +145,15 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
           ctx.toast(t("common.save"), "good");
         }, t("profile.model_desc"));
       case "goal": return numSheet(t("profile.goal"), s.repGoal, t("home.reps"), (v) => ctx.saveSettings({ repGoal: Math.max(10, Math.min(5000, Math.round(v))) }));
+      case "depth": return numSheet(
+        "Rep depth %",
+        s.repDepthPct,
+        "%",
+        (v) => {
+          ctx.saveSettings({ repDepthPct: Math.max(20, Math.min(150, Math.round(v))) });
+          ctx.toast(t("common.save"), "good");
+        }
+      );
       case "camera": return pickSheet(t("profile.camera"), [
           [t("profile.front"), "user"], [t("profile.back"), "environment"],
         ], s.cameraFacing, (v) => ctx.saveSettings({ cameraFacing: v as "user" | "environment" }));

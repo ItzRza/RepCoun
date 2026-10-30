@@ -18,12 +18,13 @@ export const DEFAULT_SETTINGS: Settings = {
   sex: "male",
   unit: "metric",
   cameraFacing: "user",
-  model: "full",
+  model: "lite", // lite = fast and smooth; "full" = more accurate, slower
   autoDetect: true,
   sound: true,
   haptics: true,
   trackToHc: true,
   repGoal: 100,
+  repDepthPct: 100,
   onboardingDone: false,
 };
 

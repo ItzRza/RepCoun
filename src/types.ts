@@ -15,6 +15,8 @@ export interface Settings {
   haptics: boolean;
   trackToHc: boolean;
   repGoal: number; // daily reps goal
+  /** how much of the movement must be done to count a rep (percent of the standard depth) */
+  repDepthPct: number;
   onboardingDone: boolean;
 }
 
@@ -25,6 +27,8 @@ export interface Session {
   /** exercise id or "auto" mixed */
   exercise: string;
   reps: number;
+  /** reps per exercise for mixed/auto workouts */
+  breakdown?: Record<string, number>;
   rejected: number;
   kcal: number;
   durationSec: number;

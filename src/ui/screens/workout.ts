@@ -115,6 +115,8 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   let selected: string = initialExercise && initialExercise !== AUTO ? initialExercise : AUTO;
   let current: ExerciseDef | null = selected !== AUTO ? EXERCISE_MAP[selected] : null;
   let reps = 0;
+  /** reps per exercise — kept across auto-detected exercise switches */
+  const breakdown: Record<string, number> = {};
   let rejected = 0;
   let holdSecs = 0;
   let hr: number | null = null;
@@ -160,7 +162,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   function setExercise(def: ExerciseDef | null, announce = false) {
     current = def;
     calories.setExercise(def);
-    detector = def ? new RepCounter(def, hooks) : null;
+    detector = def ? new RepCounter(def, hooks, store.getSettings().repDepthPct) : null;
     auto.reset();
     exNameEl.textContent = def ? t(`exercise.${def.i18n}`) : "";
     if (def) {
@@ -182,6 +184,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   const hooks = {
     onRep: (depth: number) => {
       reps++;
+      breakdown[current?.id ?? "mixed"] = (breakdown[current?.id ?? "mixed"] ?? 0) + 1;
       countEl.textContent = String(reps);
       countEl.classList.remove("pop");
       void countEl.offsetWidth;
@@ -223,7 +226,10 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     // Rewritten from zero: try the SIMPLEST request first ({video:true}), then
     // the preferred facing. Each attempt gets a 12s timeout so a silently
     // swallowed permission dialog can never hang the workout forever.
-    const attempts: MediaStreamConstraints[] = [{ video: true }, { video: { facingMode: facing } }];
+    const attempts: MediaStreamConstraints[] = [
+      { video: { width: { ideal: 640 }, height: { ideal: 480 } } },
+      { video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } } },
+    ];
     let lastErr: unknown = null;
     for (const constraints of attempts) {
       let ask: Promise<MediaStream> | null = null;
@@ -268,7 +274,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   /* ------------------------------ detection ------------------------------- */
   function resizeCanvas() {
     const rect = canvas.parentElement!.getBoundingClientRect();
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = Math.min(1.5, window.devicePixelRatio || 1);
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
   }
@@ -291,7 +297,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     ctx2d.lineWidth = Math.max(2.5, cw / 150);
     ctx2d.strokeStyle = "rgba(74, 222, 128, 0.95)";
     ctx2d.shadowColor = "rgba(74,222,128,0.5)";
-    ctx2d.shadowBlur = 8;
+    ctx2d.shadowBlur = 0; // glow costs a lot of FPS on phones
     for (const [a, b] of CONN) {
       const pa = P(a), pb = P(b);
       if (pa.v < 0.5 || pb.v < 0.5) continue;
@@ -410,6 +416,13 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
         <div class="summary-stat"><div class="v">${fmtDuration(durationSec)}</div><div class="l">${t("workout.duration")}</div></div>
       </div>
       ${hr ? `<div class="row" style="justify-content:center;gap:6px;color:var(--red)">${icons.heart}<b>${hr}</b><span class="tiny">${t("workout.hr")}</span></div>` : ""}
+      ${Object.keys(breakdown).length > 1 ? `<div class="list" style="margin-top:10px">${Object.entries(breakdown)
+        .map(([id, n]) => `
+        <div class="list-row" style="cursor:default">
+          <div style="flex:1" class="h3">${EXERCISE_MAP[id] ? t(`exercise.${EXERCISE_MAP[id].i18n}`) : id}</div>
+          <div class="sub" style="font-weight:700">${n} ${t("home.reps")}</div>
+        </div>`)
+        .join("")}</div>` : ""}
       <div class="row" style="margin-top:14px;gap:10px">
         <button class="btn ghost" data-a="discard">${t("workout.discard")}</button>
         <button class="btn primary" data-a="save">${t("workout.save")}</button>
@@ -426,6 +439,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
             endedAt: Date.now(),
             exercise: exId,
             reps: count,
+            breakdown,
             rejected,
             kcal,
             durationSec,
