@@ -27,7 +27,7 @@ type Plugin = {
   hcAvailability(): Promise<{ available: boolean; updateRequired?: boolean; status?: number }>;
   hcRequestPermissions(): Promise<{ granted: boolean; reason?: "update" | "unavailable"; manual?: boolean }>;
   hcOpenStore(): Promise<void>;
-  hcStatus(): Promise<{ granted: boolean }>;
+  hcStatus(): Promise<{ granted: boolean; full?: boolean; count?: number; total?: number }>;
   hcReadHeartRate(): Promise<{ bpm: number | null; at: number | null }>;
   hcReadSessions(o: { days: number }): Promise<{ sessions: HcSession[]; ok: boolean; error?: string }>;
   hcWriteSession(o: {

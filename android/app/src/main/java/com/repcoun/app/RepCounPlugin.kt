@@ -127,17 +127,24 @@ class RepCounPlugin : Plugin() {
     fun hcStatus(call: PluginCall) {
         executor.execute {
             val data = JSObject()
-            data.put("granted", if (sdkAvailable()) allGranted() else false)
+            val count = if (sdkAvailable()) grantedCount() else 0
+            // ANY granted permission counts as connected — requiring all six made
+            // manual grants in Health Connect look like "Not connected".
+            data.put("granted", count > 0)
+            data.put("full", count >= HC_PERMISSIONS.size)
+            data.put("count", count)
+            data.put("total", HC_PERMISSIONS.size)
             call.resolve(data)
         }
     }
 
-    private fun allGranted(): Boolean = try {
+    /** How many of RepCoun's Health Connect permissions are granted right now. */
+    private fun grantedCount(): Int = try {
         val client = HealthConnectClient.getOrCreate(io())
         val granted = runBlocking { client.permissionController.getGrantedPermissions() }
-        HC_PERMISSIONS.all { it in granted }
+        HC_PERMISSIONS.count { it in granted }
     } catch (t: Throwable) {
-        false
+        0
     }
 
     @PluginMethod
@@ -154,7 +161,7 @@ class RepCounPlugin : Plugin() {
             call.resolve(data)
             return
         }
-        if (allGranted()) {
+        if (grantedCount() > 0) {
             val data = JSObject()
             data.put("granted", true)
             call.resolve(data)

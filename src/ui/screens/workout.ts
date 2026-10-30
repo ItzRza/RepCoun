@@ -217,19 +217,33 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   async function startCamera() {
     stopCamera(); // release a camera left running by a previous attempt
     // Ask for the camera directly through getUserMedia: Android's WebView shows
-    // the system permission dialog itself. (This path is proven to work on the
-    // user's device — our own pre-request dialog did not open there.)
+    // the system permission dialog itself (reliable on the user's device, unlike
+    // our own native dialog). A 12s timeout guards against phones that swallow
+    // the dialog and leave the request hanging forever.
+    let ask: Promise<MediaStream> | null = null;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
+      ask = navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
+      const timeout = new Promise<never>((_, reject) => {
+        const id = window.setTimeout(
+          () => reject({ name: "TimeoutError", message: "camera permission dialog never answered" }),
+          12000
+        );
+        ask!.then(() => window.clearTimeout(id), () => window.clearTimeout(id));
+      });
+      stream = await Promise.race([ask, timeout]);
     } catch (e) {
-      camDenied = (e as { name?: string })?.name === "NotAllowedError";
+      const name = (e as { name?: string })?.name;
+      camDenied = name === "NotAllowedError" || name === "TimeoutError";
       bootDiag = describeErr(e);
-      // Blocked → jump straight to the app settings page so the user can allow
-      // Camera there (some phones never show the permission dialog again).
-      if (camDenied && health.isNative()) void health.openAppSettings();
+      // Blocked → open the app settings page so the user can allow Camera
+      // there (some phones never show the permission dialog at all).
+      if (camDenied) {
+        if (ask) ask.then((s) => s.getTracks().forEach((tr) => tr.stop()), () => {});
+        if (health.isNative()) void health.openAppSettings();
+      }
       throw e;
     }
     video.srcObject = stream;
