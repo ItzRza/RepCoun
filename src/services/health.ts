@@ -4,6 +4,7 @@
  * In a normal browser everything degrades gracefully (features just hide).
  */
 
+import { registerPlugin } from "@capacitor/core";
 import { Session } from "../types";
 
 export interface HcAvailability {
@@ -51,14 +52,27 @@ export interface HcSession {
   pkg: string;
 }
 
+/**
+ * The native plugin handle.
+ *
+ * Capacitor 8 requires registering the plugin from the JS side — the legacy
+ * `window.Capacitor.Plugins.RepCoun` lookup silently returns undefined, which
+ * made every native feature (Health Connect, heart rate, PiP, version info)
+ * fail invisibly. This is the official pattern: native registerPlugin() in
+ * MainActivity + registerPlugin() here.
+ */
+const RepCoun = registerPlugin<Plugin>("RepCoun");
+
 function plugin(): Plugin | null {
   const cap = (window as any).Capacitor;
   try {
-    const p = cap?.Plugins?.RepCoun;
-    return p ?? null;
+    if (typeof cap?.getPlatform === "function" && cap.getPlatform() === "android") {
+      return RepCoun as unknown as Plugin;
+    }
   } catch {
-    return null;
+    /* fall through */
   }
+  return null;
 }
 
 export const health = {

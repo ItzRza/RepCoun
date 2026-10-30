@@ -208,6 +208,8 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
 
   /* -------------------------------- camera -------------------------------- */
   function describeErr(e: unknown): string {
+    if (e == null) return "unknown error";
+    if (typeof e === "string") return e;
     const err = e as { name?: string; message?: string } | null;
     return `${err?.name ?? "Error"}${err?.message ? `: ${err.message}` : ""}`;
   }

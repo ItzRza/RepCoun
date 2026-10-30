@@ -16,6 +16,40 @@ export function modelUrl(model: "full" | "lite"): string {
   return new URL(`models/pose_landmarker_${model}.task`, document.baseURI).href;
 }
 
+function errText(e: unknown): string {
+  if (e == null) return "unknown error";
+  if (typeof e === "string") return e;
+  const o = e as { name?: string; message?: string };
+  return `${o?.name ?? "Error"}${o?.message ? `: ${o.message}` : ""}`;
+}
+
+/**
+ * Runs HEAD checks on every bundled file after a failure, so the thrown error
+ * says exactly what is missing (e.g. "404 vision_wasm_internal.wasm") instead
+ * of a generic, messageless error.
+ */
+async function describeFailure(model: "full" | "lite", lastErr: unknown): Promise<Error> {
+  const names = [
+    `${WASM_DIR}vision_wasm_internal.js`,
+    `${WASM_DIR}vision_wasm_nosimd_internal.js`,
+    `${WASM_DIR}vision_wasm_internal.wasm`,
+    `${WASM_DIR}vision_wasm_nosimd_internal.wasm`,
+    modelUrl(model),
+  ];
+  const problems: string[] = [];
+  for (const url of names) {
+    const short = url.split("/").pop();
+    try {
+      const r = await fetch(url, { method: "HEAD" });
+      if (!r.ok) problems.push(`${short} → HTTP ${r.status}`);
+    } catch {
+      problems.push(`${short} → fetch failed`);
+    }
+  }
+  const base = errText(lastErr);
+  return new Error(problems.length ? `${base} [${problems.join("; ")}]` : base);
+}
+
 export class PoseEngine {
   private landmarker: PoseLandmarker | null = null;
   private lastTs = 0;
@@ -25,15 +59,33 @@ export class PoseEngine {
 
   static async create(opts: PoseEngineOptions): Promise<PoseEngine> {
     const engine = new PoseEngine();
-    const fileset = await FilesetResolver.forVisionTasks(WASM_DIR);
-    try {
-      engine.landmarker = await engine.make(fileset, opts.model, "GPU");
-    } catch {
-      // Some WebViews don't expose WebGL compute — fall back to CPU.
-      engine.delegate = "CPU";
-      engine.landmarker = await engine.make(fileset, opts.model, "CPU");
+    // Try the requested model first, then fall back to the smaller "lite" one —
+    // and on each model try GPU first, then CPU. Only give up when all fail.
+    const models: Array<"full" | "lite"> = opts.model === "full" ? ["full", "lite"] : ["lite"];
+    let lastErr: unknown = null;
+
+    for (const model of models) {
+      let fileset: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>;
+      try {
+        fileset = await FilesetResolver.forVisionTasks(WASM_DIR);
+      } catch (e) {
+        lastErr = e; // WASM loader itself failed — no point trying more models
+        break;
+      }
+      for (const delegate of ["GPU", "CPU"] as const) {
+        try {
+          engine.landmarker = await engine.make(fileset, model, delegate);
+          engine.delegate = delegate;
+          return engine;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
     }
-    return engine;
+
+    // Everything failed — build a PRECISE error (which file is missing/broken)
+    // so one screenshot of the error screen is enough to diagnose.
+    throw await describeFailure(opts.model, lastErr);
   }
 
   private make(fileset: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>, model: "full" | "lite", delegate: "GPU" | "CPU") {
