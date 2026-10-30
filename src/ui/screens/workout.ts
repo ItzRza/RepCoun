@@ -14,6 +14,7 @@ import { log } from "../../services/logger";
 import { cloudAssist, getCloudEndpoint, isOnline } from "../../services/online";
 import { store } from "../../data/store";
 import { getLbApi, submitScore, uploadProgress } from "../../services/lbapi";
+import { currentUser, saveSession as cloudSaveSession, saveUserData } from "../../services/cloud";
 import { personalRecords } from "../../data/store";
 import { t } from "../../i18n/i18n";
 import { h, $, fmtDuration, haptic, beep, esc } from "../dom";
@@ -459,6 +460,11 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
             const meName = store.getProfile().leaderboardName || store.getProfile().name || "You";
             void submitScore(meName, count);
             void uploadProgress(meName, session); // progress backup
+          }
+          // Cloud account backup (Firebase) — when signed in.
+          if (currentUser()) {
+            void cloudSaveSession(session);
+            void saveUserData(store.getProfile() as unknown as Record<string, unknown>, store.getSettings());
           }
           closeSheet();
           ctx.toast(t("workout.saved", { kcal }), "good");

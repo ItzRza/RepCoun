@@ -12,6 +12,7 @@ import { getCustoms, addCustom, deleteCustom, JOINT_LABELS, TrackJoint } from ".
 import { runCalibration } from "../calibrate";
 import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
 import { getLbApi, setLbApi, testLbApi, downloadProgress } from "../../services/lbapi";
+import { cloudReady, currentUser, signIn, signUp, logOut, restoreSessions, saveUserData } from "../../services/cloud";
 import type { Session } from "../../types";
 
 export function renderProfile(root: HTMLElement, ctx: Ctx) {
@@ -62,6 +63,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       ${row("goal", icons.target, t("profile.goal"), String(s.repGoal))}
       ${row("depth", icons.target, "Rep depth %", `${s.repDepthPct}%`)}
       ${row("myex", icons.trophy, "My exercises", String(getCustoms().length))}
+      ${row("account", icons.info, "Cloud account", currentUser() ? "ON" : "OFF")}
       ${row("camera", icons.camera_flip, t("profile.camera"), s.cameraFacing === "user" ? t("profile.front") : t("profile.back"))}
     </div>
 
@@ -151,6 +153,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
         }, t("profile.model_desc"));
       case "goal": return numSheet(t("profile.goal"), s.repGoal, t("home.reps"), (v) => ctx.saveSettings({ repGoal: Math.max(10, Math.min(5000, Math.round(v))) }));
       case "myex": return myExSheet();
+      case "account": return accountSheet();
       case "depth": return numSheet(
         "Rep depth %",
         s.repDepthPct,
@@ -348,6 +351,89 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
         );
       });
     }
+  }
+
+  /** Optional cloud login — backup & restore on any phone (Firebase). */
+  function accountSheet() {
+    const email = currentUser();
+    if (!cloudReady()) {
+      ctx.openSheet(
+        `<div class="h2" style="margin-bottom:8px">Cloud account</div>
+         <div class="sub">Cloud login needs your own free Firebase project (3 minutes, $0):</div>
+         <div class="tiny" style="margin:10px 2px;line-height:1.8">
+           1. console.firebase.google.com → Add project<br>
+           2. Authentication → Sign-in method → Email/Password → Enable<br>
+           3. Firestore → Create database → production mode<br>
+           4. Project settings (⚙) → Your apps → Web (</>) → Register app<br>
+           5. Send me the firebaseConfig values and I finish the wiring
+         </div>`
+      );
+      return;
+    }
+    if (email) {
+      ctx.openSheet(
+        `<div class="h2" style="margin-bottom:6px">Cloud account</div>
+         <div class="sub" style="margin-bottom:14px">Signed in as <b>${esc(email)}</b></div>
+         <button class="btn primary block" data-a="sync">Sync now (backup + restore)</button>
+         <button class="btn ghost block" style="margin-top:10px" data-a="out">Sign out</button>
+         <div class="tiny" id="acc-msg" style="margin-top:10px;text-align:center"></div>`,
+        (sheet) => {
+          sheet.querySelector('[data-a="sync"]')!.addEventListener("click", async () => {
+            const msg = sheet.querySelector("#acc-msg") as HTMLElement;
+            msg.textContent = "…";
+            void saveUserData(store.getProfile() as unknown as Record<string, unknown>, store.getSettings());
+            const added = await restoreSessions(
+              (s) => store.addSession(s),
+              (id) => store.getSessions().some((x) => x.id === id)
+            );
+            msg.textContent = added < 0 ? "✗ could not reach the cloud" : `✓ synced — ${added} workouts restored`;
+          });
+          sheet.querySelector('[data-a="out"]')!.addEventListener("click", () => {
+            void logOut();
+            ctx.rerender();
+          });
+        }
+      );
+      return;
+    }
+    ctx.openSheet(
+      `<div class="h2" style="margin-bottom:8px">Cloud account</div>
+       <div class="sub" style="margin-bottom:12px">Sign in to save your workouts to your account and get them back on any phone.</div>
+       <input class="input" id="acc-mail" placeholder="email">
+       <input class="input" id="acc-pass" type="password" style="margin-top:10px" placeholder="password (min 6 characters)">
+       <div class="row" style="margin-top:14px;gap:10px">
+         <button class="btn ghost" data-a="in" style="flex:1">Sign in</button>
+         <button class="btn primary" data-a="reg" style="flex:1">Create account</button>
+       </div>
+       <div class="tiny" id="acc-msg" style="margin-top:10px;text-align:center"></div>`,
+      (sheet) => {
+        const go = async (register: boolean) => {
+          const msg = sheet.querySelector("#acc-msg") as HTMLElement;
+          const mail = (sheet.querySelector("#acc-mail") as HTMLInputElement).value.trim();
+          const pass = (sheet.querySelector("#acc-pass") as HTMLInputElement).value;
+          if (!mail || pass.length < 6) {
+            msg.textContent = "enter email and a password of 6+ characters";
+            return;
+          }
+          msg.textContent = "…";
+          const err = register ? await signUp(mail, pass) : await signIn(mail, pass);
+          if (err) {
+            msg.textContent = err;
+            return;
+          }
+          // first sync: push what we have, then pull anything new
+          void saveUserData(store.getProfile() as unknown as Record<string, unknown>, store.getSettings());
+          const added = await restoreSessions(
+            (s) => store.addSession(s),
+            (id) => store.getSessions().some((x) => x.id === id)
+          );
+          ctx.toast(`signed in${added > 0 ? ` — ${added} workouts restored` : ""}`, "good");
+          ctx.rerender();
+        };
+        sheet.querySelector('[data-a="in"]')!.addEventListener("click", () => void go(false));
+        sheet.querySelector('[data-a="reg"]')!.addEventListener("click", () => void go(true));
+      }
+    );
   }
 
   /** User-created exercises — learned from an 8-second movement recording. */
