@@ -18,10 +18,11 @@ class MainActivity : BridgeActivity() {
     private var hcLauncher: ActivityResultLauncher<Set<String>>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // CRITICAL: the Capacitor bridge is created INSIDE super.onCreate(), so the
+        // plugin must be added BEFORE it — registering afterwards silently does
+        // nothing and every plugin call from JS fails as "not implemented".
+        initialPlugins.add(RepCounPlugin::class.java)
         super.onCreate(savedInstanceState)
-
-        // Custom plugin: camera permission + Health Connect + mini mode
-        registerPlugin(RepCounPlugin::class.java)
 
         // Camera runtime permission (needed by the WebView camera / getUserMedia)
         cameraLauncher = activityResultRegistry.register(

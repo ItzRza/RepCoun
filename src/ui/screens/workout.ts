@@ -10,6 +10,7 @@ import { RepCounter, RejectReason } from "../../engine/repCounter";
 import { CalorieTracker } from "../../engine/calories";
 import { Landmarks, LM } from "../../engine/geometry";
 import { health, HrMonitor } from "../../services/health";
+import { log } from "../../services/logger";
 import { cloudAssist, getCloudEndpoint, isOnline } from "../../services/online";
 import { store } from "../../data/store";
 import { personalRecords } from "../../data/store";
@@ -210,8 +211,10 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   function describeErr(e: unknown): string {
     if (e == null) return "unknown error";
     if (typeof e === "string") return e;
-    const err = e as { name?: string; message?: string } | null;
-    return `${err?.name ?? "Error"}${err?.message ? `: ${err.message}` : ""}`;
+    const err = e as { name?: string; message?: string; stack?: string } | null;
+    const head = `${err?.name ?? "Error"}${err?.message ? `: ${err.message}` : ""}`;
+    const at = (err?.stack ?? "").split("\n")[1]?.trim();
+    return at ? `${head} @ ${at}` : head;
   }
 
   async function startCamera() {
@@ -237,6 +240,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
         break;
       } catch (e) {
         lastErr = e;
+        log.e("cam", `getUserMedia FAIL ${describeErr(e)}`);
         const name = (e as { name?: string })?.name;
         if (ask) ask.then((s) => s.getTracks().forEach((tr) => tr.stop()), () => {});
         // No permission / dialog swallowed → retrying cannot help.
@@ -251,6 +255,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
       if (camDenied && health.isNative()) void health.openAppSettings();
       throw lastErr ?? new Error("camera");
     }
+    log.i("cam", "stream ok");
     video.srcObject = stream;
     await video.play().catch(() => {});
   }
@@ -508,10 +513,13 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
       return;
     }
     bootError = "model";
+    log.i("model", `loading ${store.getSettings().model}`);
     try {
       engine = await PoseEngine.create({ model: store.getSettings().model });
+      log.i("model", "loaded ok");
     } catch (e) {
       bootDiag = describeErr(e);
+      log.e("model", `load FAIL ${bootDiag}`);
       showError();
       return;
     }

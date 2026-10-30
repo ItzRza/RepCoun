@@ -7,6 +7,7 @@ import { icons } from "../icons";
 import { store, totals } from "../../data/store";
 import { rankOf, setRankNameResolver } from "../../data/leaderboard";
 import { health } from "../../services/health";
+import { logText } from "../../services/logger";
 import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
 
 export function renderProfile(root: HTMLElement, ctx: Ctx) {
@@ -80,11 +81,12 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
     <div class="section-title"><div class="h2">${t("profile.data")}</div></div>
     <div class="list">
       ${row("clear", icons.trash, t("profile.clear_data"), "")}
-      <div class="list-row" style="cursor:default">
+      <div class="list-row" data-a="about" style="cursor:pointer">
         <div class="emoji">${icons.info}</div>
         <div style="flex:1">
           <div class="h3">${t("profile.about")}</div>
           <div class="tiny" id="about-line">RepCoun · ${t("profile.version")} 1.0.0</div>
+          <div class="tiny" style="opacity:.7">tap for logs</div>
         </div>
       </div>
     </div>
@@ -152,6 +154,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       case "cloud": return cloudSheet();
       case "lbapi": return ctx.toast(t("lb.global_empty"), "info");
       case "clear": return clearSheet();
+      case "about": return logsSheet();
     }
   }
 
@@ -265,6 +268,29 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
         );
       });
     }
+  }
+
+  /** Support tool: everything the app did, ready to copy and send. */
+  function logsSheet() {
+    ctx.openSheet(
+      `<div class="h2" style="margin-bottom:6px">Logs</div>
+       <div class="sub" style="margin-bottom:10px">Tap Copy, then paste it to support.</div>
+       <textarea class="input" id="logbox" readonly style="height:280px;font-family:monospace;font-size:11px">${esc(logText())}</textarea>
+       <button class="btn primary block" style="margin-top:12px" data-a="copy">Copy logs</button>`,
+      (sheet) => {
+        sheet.querySelector('[data-a="copy"]')!.addEventListener("click", () => {
+          const box = sheet.querySelector("#logbox") as HTMLTextAreaElement;
+          box.select();
+          box.setSelectionRange(0, 999999);
+          try {
+            void navigator.clipboard?.writeText(box.value);
+          } catch {
+            /* selection copy still works manually */
+          }
+          ctx.toast("Copied", "good");
+        });
+      }
+    );
   }
 
   function clearSheet() {

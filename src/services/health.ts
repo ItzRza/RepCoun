@@ -6,6 +6,9 @@
 
 import { registerPlugin } from "@capacitor/core";
 import { Session } from "../types";
+import { installLog, log, errText } from "./logger";
+
+installLog(); // record everything from the very first moment
 
 export interface HcAvailability {
   native: boolean;
@@ -125,6 +128,7 @@ export const health = {
     if (!p) return null;
     try {
       const r = await p.appVersion();
+      log.i("app", `version ${r?.version ?? "null"}`);
       if (r?.version)
         return {
           version: r.version,
@@ -135,7 +139,8 @@ export const health = {
           hcStatus: r.hcStatus,
         };
       return null;
-    } catch {
+    } catch (e) {
+      log.e("app", `version FAIL ${errText(e)}`);
       return null;
     }
   },
@@ -162,8 +167,10 @@ export const health = {
         p.hcAvailability(),
         p.hcStatus(),
       ]);
+      log.i("hc", `availability available=${available} granted=${granted} update=${!!updateRequired}`);
       return { native: true, available, granted, updateRequired: !!updateRequired };
-    } catch {
+    } catch (e) {
+      log.e("hc", `availability FAIL ${errText(e)}`);
       return { native: true, available: false, granted: false, updateRequired: false };
     }
   },
@@ -181,8 +188,10 @@ export const health = {
     if (!p) return { granted: false };
     try {
       const r = await p.hcRequestPermissions();
+      log.i("hc", `request granted=${!!r.granted} reason=${r.reason ?? "-"} manual=${!!r.manual}`);
       return { granted: !!r.granted, reason: r.reason, manual: !!r.manual };
-    } catch {
+    } catch (e) {
+      log.e("hc", `request FAIL ${errText(e)}`);
       return { granted: false };
     }
   },
