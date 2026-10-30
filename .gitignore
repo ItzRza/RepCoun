@@ -13,3 +13,7 @@ android/capacitor-cordova-android-plugins/build/
 android/app/src/main/assets/public/
 *.keystore
 *.jks
+
+.env
+.env.*
+!.env.example
