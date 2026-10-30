@@ -24,7 +24,7 @@ import {
   getDocs,
   Firestore,
 } from "firebase/firestore";
-import { firebaseConfig, cloudConfigured, googleWebClientId } from "./firebase-config";
+import { loadCloudConfig, saveCloudConfig, CloudConfig } from "./firebase-config";
 import { health } from "./health";
 import { Session, Settings } from "../types";
 
@@ -35,9 +35,11 @@ let user: User | null = null;
 const authListeners = new Set<(email: string | null) => void>();
 
 function init() {
-  if (!cloudConfigured || app) return;
+  if (app) return;
+  const cfg = loadCloudConfig();
+  if (!cfg) return;
   try {
-    app = initializeApp(firebaseConfig);
+    app = initializeApp({ ...cfg }, `repcoun-${Date.now()}`);
     auth = getAuth(app);
     db = getFirestore(app);
     onAuthStateChanged(auth, (u) => {
@@ -46,12 +48,29 @@ function init() {
     });
   } catch {
     app = null; // bad config — degrade to offline
+    auth = null;
+    db = null;
   }
 }
 
-/** Is Firebase configured in firebase-config.ts? */
+/** Save the pasted Firebase config on this phone and connect to it. */
+export function configureCloud(cfg: CloudConfig): string | null {
+  try {
+    saveCloudConfig(cfg);
+    app = null;
+    auth = null;
+    db = null;
+    user = null;
+    init();
+    return null;
+  } catch (e) {
+    return (e as Error).message;
+  }
+}
+
+/** Is a Firebase config available (saved on the phone or baked into the build)? */
 export function cloudReady(): boolean {
-  return cloudConfigured;
+  return loadCloudConfig() !== null;
 }
 
 /** Currently signed-in email, or null. */
@@ -97,8 +116,9 @@ export async function signIn(email: string, password: string): Promise<string | 
 export async function signInWithGoogle(): Promise<string | null> {
   init();
   if (!auth) return "cloud not configured";
-  if (!googleWebClientId) return "Google Sign-In is not configured yet";
-  const r = await health.googleSignIn(googleWebClientId);
+  const cfg = loadCloudConfig();
+  if (!cfg?.googleWebClientId) return "Google Sign-In is not configured yet";
+  const r = await health.googleSignIn(cfg.googleWebClientId);
   if (r.error) return r.error;
   if (!r.idToken) return "Google gave no ID token";
   try {

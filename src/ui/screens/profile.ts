@@ -12,7 +12,8 @@ import { getCustoms, addCustom, deleteCustom, JOINT_LABELS, TrackJoint } from ".
 import { runCalibration } from "../calibrate";
 import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
 import { getLbApi, setLbApi, testLbApi, downloadProgress } from "../../services/lbapi";
-import { cloudReady, currentUser, signIn, signUp, signInWithGoogle, logOut, restoreSessions, saveUserData } from "../../services/cloud";
+import { cloudReady, currentUser, signIn, signUp, signInWithGoogle, logOut, restoreSessions, saveUserData, configureCloud } from "../../services/cloud";
+import { parseFirebaseSnippet } from "../../services/firebase-config";
 import type { Session } from "../../types";
 
 export function renderProfile(root: HTMLElement, ctx: Ctx) {
@@ -359,14 +360,37 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
     if (!cloudReady()) {
       ctx.openSheet(
         `<div class="h2" style="margin-bottom:8px">Cloud account</div>
-         <div class="sub">Cloud login needs your own free Firebase project (3 minutes, $0):</div>
-         <div class="tiny" style="margin:10px 2px;line-height:1.8">
-           1. console.firebase.google.com → Add project<br>
-           2. Authentication → Sign-in method → Email/Password → Enable<br>
-           3. Firestore → Create database → production mode<br>
-           4. Project settings (⚙) → Your apps → Web (</>) → Register app<br>
-           5. Send me the firebaseConfig values and I finish the wiring
-         </div>`
+         <div class="sub" style="margin-bottom:10px">In the Firebase console: <b>Project settings (⚙) → Your apps → the Web app (</> icon)</b> → "SDK setup and configuration" → copy the whole <b>const firebaseConfig = {…}</b> snippet and paste it below. It is saved on this phone only — nothing goes into the public repo.</div>
+         <textarea class="input" id="cfg-text" style="height:150px;font-family:monospace;font-size:11px" placeholder="const firebaseConfig = { apiKey: ... };"></textarea>
+         <input class="input" id="cfg-google" style="margin-top:10px" placeholder="Google Web client ID (apps.googleusercontent.com) — optional">
+         <button class="btn primary block" style="margin-top:12px" data-a="cfgsave">Save &amp; connect</button>
+         <div class="tiny" id="acc-msg" style="margin-top:10px;text-align:center"></div>`,
+        (sheet) => {
+          sheet.querySelector('[data-a="cfgsave"]')!.addEventListener("click", () => {
+            const msg = sheet.querySelector("#acc-msg") as HTMLElement;
+            const parsed = parseFirebaseSnippet((sheet.querySelector("#cfg-text") as HTMLTextAreaElement).value);
+            if (!parsed) {
+              msg.textContent = "couldn't read the config — paste the whole snippet";
+              return;
+            }
+            const google = (sheet.querySelector("#cfg-google") as HTMLInputElement).value.trim();
+            const err = configureCloud({
+              apiKey: parsed.apiKey ?? "",
+              authDomain: parsed.authDomain ?? "",
+              projectId: parsed.projectId ?? "",
+              storageBucket: parsed.storageBucket ?? "",
+              messagingSenderId: parsed.messagingSenderId ?? "",
+              appId: parsed.appId ?? "",
+              googleWebClientId: google,
+            });
+            if (err) {
+              msg.textContent = err;
+              return;
+            }
+            ctx.toast("cloud connected", "good");
+            ctx.rerender();
+          });
+        }
       );
       return;
     }
