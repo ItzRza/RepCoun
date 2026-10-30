@@ -216,26 +216,22 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
 
   async function startCamera() {
     stopCamera(); // release a camera left running by a previous attempt
-    const granted = await health.cameraPermission();
-    if (health.isNative() && !granted) {
-      // Some phones auto-block the camera permission dialog and it can never be
-      // asked again — jump straight to the app settings page so the user can
-      // enable Camera for RepCoun there.
-      camDenied = true;
-      void health.openAppSettings();
-      throw new Error("permission");
-    }
-    camDenied = false;
-    stream = await navigator.mediaDevices
-      .getUserMedia({
+    // Ask for the camera directly through getUserMedia: Android's WebView shows
+    // the system permission dialog itself. (This path is proven to work on the
+    // user's device — our own pre-request dialog did not open there.)
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
-      })
-      .catch((e: unknown) => {
-        camDenied = (e as { name?: string })?.name === "NotAllowedError";
-        bootDiag = describeErr(e);
-        throw e;
       });
+    } catch (e) {
+      camDenied = (e as { name?: string })?.name === "NotAllowedError";
+      bootDiag = describeErr(e);
+      // Blocked → jump straight to the app settings page so the user can allow
+      // Camera there (some phones never show the permission dialog again).
+      if (camDenied && health.isNative()) void health.openAppSettings();
+      throw e;
+    }
     video.srcObject = stream;
     await video.play().catch(() => {});
   }

@@ -26,6 +26,17 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
     }
   });
 
+  // Re-check when the user returns from Health Connect / Settings (manual grant).
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    void health.availability().then((a) => {
+      if (a.granted && !hcGranted) {
+        hcGranted = true;
+        draw();
+      }
+    });
+  });
+
   function draw() {
     root.innerHTML = `
       <div class="screen no-nav" style="display:flex;flex-direction:column">
@@ -65,9 +76,14 @@ export function renderOnboarding(root: HTMLElement, ctx: Ctx) {
       })
     );
     root.querySelector("[data-a='cam']")?.addEventListener("click", async () => {
-      camGranted = await health.cameraPermission();
-      if (!camGranted && health.isNative()) {
-        // Permission dialog blocked by the phone — send the user to Settings.
+      // Probe through getUserMedia — Android's WebView shows the system camera
+      // dialog itself (reliable on every device; our own dialog was blocked).
+      try {
+        const probe = await navigator.mediaDevices.getUserMedia({ video: true });
+        probe.getTracks().forEach((tr) => tr.stop());
+        camGranted = true;
+      } catch {
+        camGranted = false;
         void health.openAppSettings();
         ctx.toast(t("workout.cam_permission"), "info");
       }

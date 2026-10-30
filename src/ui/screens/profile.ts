@@ -90,14 +90,21 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
     </div>
   `;
 
-  // Fill in the real build + device info (e.g. "1.0.0+b13 · Android 16 · HC ready
-  // · bridge ok") — this line is what we ask users to screenshot when
-  // reporting a problem.
-  void health.appVersion().then((v) => {
+  // Real build + device info (e.g. "1.0.0+b15 · Android 16 · HC granted · bridge ok")
+  // — one screenshot of this line is enough to diagnose a report.
+  void Promise.all([health.appVersion(), health.availability()]).then(([v, a]) => {
     const el = root.querySelector("#about-line") as HTMLElement | null;
     if (!el) return;
     const ver = v?.version ?? "1.0.0";
-    const hc = v?.hcStatus === 0 ? "HC ready" : v?.hcStatus === 2 ? "HC update" : v ? "HC n/a" : "";
+    const hc = v
+      ? v.hcStatus === 0
+        ? a.granted
+          ? "HC granted"
+          : "HC not granted"
+        : v.hcStatus === 2
+          ? "HC update"
+          : "HC n/a"
+      : "";
     const and = v?.android ? `Android ${v.android}` : "";
     el.textContent = `RepCoun · ${t("profile.version")} ${ver} · ${[and, hc, `bridge ${health.bridgeOk() ? "ok" : "missing"}`].filter(Boolean).join(" · ")}`;
   });
