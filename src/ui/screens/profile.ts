@@ -9,6 +9,7 @@ import { rankOf, setRankNameResolver } from "../../data/leaderboard";
 import { health } from "../../services/health";
 import { logText } from "../../services/logger";
 import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
+import { getLbApi, setLbApi, testLbApi } from "../../services/lbapi";
 
 export function renderProfile(root: HTMLElement, ctx: Ctx) {
   const s = store.getSettings();
@@ -76,7 +77,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
     <div class="sub" style="margin:0 2px 10px">${t("profile.advanced_desc")}</div>
     <div class="list">
       ${rowDesc("cloud", icons.globe, "Cloud assist API", t("profile.cloud_assist_desc"), getCloudEndpoint() ? "ON" : "OFF")}
-      ${rowDesc("lbapi", icons.trophy, t("lb.connect_api"), t("profile.lbapi_desc"), "")}
+      ${rowDesc("lbapi", icons.trophy, t("lb.connect_api"), t("profile.lbapi_desc"), getLbApi().url ? "ON" : "OFF")}
     </div>
 
     <div class="section-title"><div class="h2">${t("profile.data")}</div></div>
@@ -162,7 +163,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       case "trackToHc": return ctx.saveSettings({ trackToHc: !s.trackToHc });
       case "hc": return void connectHc();
       case "cloud": return cloudSheet();
-      case "lbapi": return ctx.toast(t("lb.global_empty"), "info");
+      case "lbapi": return lbSheet();
       case "clear": return clearSheet();
       case "about": return logsSheet();
     }
@@ -223,6 +224,47 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
             onSave(row.dataset.v!);
             closeFn();
           }
+        });
+      }
+    );
+  }
+
+  /** Connect API — leaderboard server + friend group setup. */
+  function lbSheet() {
+    const cur = getLbApi();
+    ctx.openSheet(
+      `<div class="h2" style="margin-bottom:6px">${t("lb.connect_api")}</div>
+       <div class="sub" style="margin-bottom:12px">Connect a leaderboard server. Everyone using the same server and the same group name appears on one board — that is a friend group. A ready-to-run server you can host anywhere: <b>server/leaderboard-server.mjs</b> in the RepCoun GitHub repo.</div>
+       <input class="input" id="f-url" value="${esc(cur.url)}" placeholder="https://my-server.com">
+       <input class="input" id="f-grp" style="margin-top:10px" value="${esc(cur.group)}" placeholder="group name (e.g. friends)">
+       <div class="row" style="margin-top:14px;gap:10px">
+         <button class="btn ghost" data-a="test" style="flex:1">Test</button>
+         <button class="btn primary" data-a="save" style="flex:1">${t("common.save")}</button>
+       </div>
+       <div class="tiny" id="lb-test" style="margin-top:10px;text-align:center"></div>`,
+      (sheet, closeFn) => {
+        const read = () => ({
+          url: (sheet.querySelector("#f-url") as HTMLInputElement).value.trim(),
+          group: (sheet.querySelector("#f-grp") as HTMLInputElement).value.trim(),
+        });
+        sheet.querySelector('[data-a="save"]')!.addEventListener("click", () => {
+          const { url, group } = read();
+          setLbApi(url, group);
+          closeFn();
+          ctx.rerender();
+        });
+        sheet.querySelector('[data-a="test"]')!.addEventListener("click", async () => {
+          const out = sheet.querySelector("#lb-test") as HTMLElement;
+          const { url, group } = read();
+          setLbApi(url, group); // test exactly what is typed
+          out.textContent = "…";
+          const r = await testLbApi();
+          out.textContent =
+            r === "ok"
+              ? `✓ connected · group: ${group || "friends"}`
+              : r === "no-url"
+                ? "type a server URL first"
+                : "✗ could not reach the server";
         });
       }
     );

@@ -6,6 +6,7 @@ import { fmt, esc } from "../dom";
 import { icons } from "../icons";
 import { store, totals } from "../../data/store";
 import { rankOf, localSeason, LbEntry, setRankNameResolver } from "../../data/leaderboard";
+import { getLbApi, fetchStandings } from "../../services/lbapi";
 
 export function renderLeaderboard(root: HTMLElement, ctx: Ctx) {
   let tab: "global" | "local" = "global";
@@ -13,9 +14,30 @@ export function renderLeaderboard(root: HTMLElement, ctx: Ctx) {
   const tot = totals();
   const rank = rankOf(tot.reps);
   setRankNameResolver((k) => t(k));
+  /** standings from the connected "Connect API" server (friend group), if any */
+  let serverList: LbEntry[] | null = null;
+
+  function loadServer() {
+    if (!getLbApi().url) return;
+    void fetchStandings().then((l) => {
+      if (l) {
+        serverList = l.map((e) => ({ name: e.name, reps: e.reps, country: e.country ?? "🌍" }));
+        draw();
+      }
+    });
+  }
 
   function draw() {
-    const entries: LbEntry[] = localSeason(myName, tot.reps, tab);
+    const api = getLbApi();
+    let entries: LbEntry[];
+    if (tab === "global" && api.url && serverList) {
+      // Real standings from the connected server (friend group).
+      entries = serverList.map((e) => ({ ...e, me: e.name === myName }));
+      if (!entries.some((e) => e.me)) entries.push({ name: myName, reps: tot.reps, country: "⭐", me: true });
+      entries.sort((a, b) => b.reps - a.reps);
+    } else {
+      entries = localSeason(myName, tot.reps, tab);
+    }
     const myPos = entries.findIndex((e) => e.me) + 1;
 
     root.innerHTML = `
@@ -40,7 +62,15 @@ export function renderLeaderboard(root: HTMLElement, ctx: Ctx) {
         <button class="${tab === "local" ? "active" : ""}" data-tab="local">${icons.chart} ${t("lb.local")}</button>
       </div>
 
-      ${tab === "global" ? `<div class="tiny" style="margin:12px 2px 10px">${t("lb.global_empty")}</div>` : ""}
+      ${tab === "global"
+        ? `<div class="tiny" style="margin:12px 2px 10px">${
+            api.url
+              ? serverList
+                ? `server: ${esc(api.url)} · group: ${esc(api.group)}`
+                : t("common.loading")
+              : t("lb.global_empty")
+          }</div>`
+        : ""}
 
       <div class="list" id="lb-list">
         ${entries
@@ -73,10 +103,12 @@ export function renderLeaderboard(root: HTMLElement, ctx: Ctx) {
     if (btn) {
       tab = btn.dataset.tab as "global" | "local";
       draw();
+      if (tab === "global") loadServer();
     }
   });
 
   draw();
+  loadServer();
 }
 
 function colorFor(name: string): string {

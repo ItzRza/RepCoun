@@ -13,6 +13,7 @@ import { health, HrMonitor } from "../../services/health";
 import { log } from "../../services/logger";
 import { cloudAssist, getCloudEndpoint, isOnline } from "../../services/online";
 import { store } from "../../data/store";
+import { getLbApi, submitScore } from "../../services/lbapi";
 import { personalRecords } from "../../data/store";
 import { t } from "../../i18n/i18n";
 import { h, $, fmtDuration, haptic, beep, esc } from "../dom";
@@ -447,6 +448,11 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
           };
           store.addSession(session);
           if (store.getSettings().trackToHc) void health.writeSession(session);
+          // Push the result to the leaderboard server (friend group), if connected.
+          if (getLbApi().url) {
+            const meName = store.getProfile().leaderboardName || store.getProfile().name || "You";
+            void submitScore(meName, count);
+          }
           closeSheet();
           ctx.toast(t("workout.saved", { kcal }), "good");
           close();
