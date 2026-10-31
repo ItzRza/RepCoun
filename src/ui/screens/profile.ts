@@ -518,8 +518,10 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
            )
            .join("")}
        </div>
-       <button class="btn primary block" style="margin-top:14px" data-a="new">+ Create exercise</button>`,
+       <button class="btn primary block" style="margin-top:14px" data-a="new">+ Create exercise</button>
+       <button class="btn ghost block" style="margin-top:10px" data-a="close">${t("common.close")}</button>`,
       (sheet, closeFn) => {
+        sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
         sheet.querySelectorAll("[data-del]").forEach((b) =>
           b.addEventListener("click", () => {
             deleteCustom((b as HTMLElement).dataset.del!);
@@ -536,23 +538,26 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
   }
 
   function createExSheet() {
-    let joint: TrackJoint = "knee";
+    let joint: TrackJoint | "auto" = "auto";
     ctx.openSheet(
       `<div class="h2" style="margin-bottom:10px">New exercise</div>
        <input class="input" id="ex-name" placeholder="Exercise name (e.g. Kettlebell Swing)">
        <div class="tiny" style="margin:12px 2px 6px">Which body movement should be counted?</div>
        <div class="seg" style="flex-wrap:wrap">
+         <button class="active" data-j="auto" style="flex:1;min-width:96px">Auto detect</button>
          ${JOINT_LABELS.map(
-           ([j, label], i) =>
-             `<button class="${i === 0 ? "active" : ""}" data-j="${j}" style="flex:1;min-width:96px">${label.split(" (")[0]}</button>`
+           ([j, label]) =>
+             `<button data-j="${j}" style="flex:1;min-width:96px">${label.split(" (")[0]}</button>`
          ).join("")}
        </div>
        <button class="btn primary block" style="margin-top:16px" data-a="rec">● Record movement (8s)</button>
+       <button class="btn ghost block" style="margin-top:10px" data-a="close">${t("common.close")}</button>
        <div class="tiny" id="ex-msg" style="margin-top:10px;text-align:center"></div>`,
-      (sheet) => {
+      (sheet, closeFn) => {
+        sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
         sheet.querySelectorAll("[data-j]").forEach((b) =>
           b.addEventListener("click", () => {
-            joint = (b as HTMLElement).dataset.j as TrackJoint;
+            joint = (b as HTMLElement).dataset.j as TrackJoint | "auto";
             sheet.querySelectorAll("[data-j]").forEach((x) => x.classList.remove("active"));
             b.classList.add("active");
           })
@@ -564,7 +569,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
             msg.textContent = "type a name first";
             return;
           }
-          msg.textContent = "get ready — recording starts now…";
+          msg.textContent = "camera opening — tap Start, then 3 · 2 · 1…";
           const rule = await runCalibration(joint);
           if ("error" in rule) {
             msg.textContent =
@@ -580,7 +585,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
           addCustom({
             id: `c${Date.now()}`,
             name,
-            joint,
+            joint: rule.joint,
             start: rule.start,
             top: rule.top,
             bottom: rule.bottom,
@@ -589,7 +594,23 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
             createdAt: Date.now(),
           });
           ctx.toast(`"${name}" learned ✓`, "good");
-          ctx.rerender();
+          // Keep this window open — show the result and the next steps inside it.
+          sheet.innerHTML = `
+            <div class="center-col" style="margin-bottom:14px">
+              <div class="logo-mark" style="margin-bottom:10px">✓</div>
+              <div class="h2" style="text-align:center">"${esc(name)}" learned!</div>
+              <div class="sub" style="text-align:center">Counts the <b>${JOINT_LABELS.find(([j]) => j === rule.joint)?.[1] ?? rule.joint}</b> movement${joint === "auto" ? " (auto-detected)" : ""} — it's now in the exercise list of every workout.</div>
+            </div>
+            <button class="btn primary block" data-a="done">Done</button>
+            <button class="btn ghost block" style="margin-top:10px" data-a="more">Create another</button>`;
+          sheet.querySelector('[data-a="done"]')!.addEventListener("click", () => {
+            ctx.rerender();
+            closeFn();
+          });
+          sheet.querySelector('[data-a="more"]')!.addEventListener("click", () => {
+            closeFn();
+            createExSheet();
+          });
         });
       }
     );
