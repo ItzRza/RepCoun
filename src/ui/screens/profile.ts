@@ -12,7 +12,7 @@ import { getCustoms, addCustom, deleteCustom, JOINT_LABELS, TrackJoint } from ".
 import { runCalibration } from "../calibrate";
 import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
 import { getLbApi, setLbApi, testLbApi, downloadProgress } from "../../services/lbapi";
-import { cloudReady, currentUser, signIn, signUp, signInWithGoogle, logOut, restoreSessions, saveUserData, configureCloud } from "../../services/cloud";
+import { cloudReady, currentUser, isGuest, signIn, signUp, signInWithGoogle, logOut, restoreSessions, saveUserData, configureCloud } from "../../services/cloud";
 import { parseFirebaseSnippet } from "../../services/firebase-config";
 import type { Session } from "../../types";
 
@@ -64,7 +64,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       ${row("goal", icons.target, t("profile.goal"), String(s.repGoal))}
       ${row("depth", icons.target, "Rep depth %", `${s.repDepthPct}%`)}
       ${row("myex", icons.trophy, "My exercises", String(getCustoms().length))}
-      ${row("account", icons.info, "Cloud account", currentUser() ? "ON" : "OFF")}
+      ${row("account", icons.info, "Cloud account", currentUser() ? "ON" : isGuest() ? "Guest" : "OFF")}
       ${row("camera", icons.camera_flip, t("profile.camera"), s.cameraFacing === "user" ? t("profile.front") : t("profile.back"))}
     </div>
 
@@ -364,8 +364,10 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
          <textarea class="input" id="cfg-text" style="height:150px;font-family:monospace;font-size:11px" placeholder="const firebaseConfig = { apiKey: ... };"></textarea>
          <input class="input" id="cfg-google" style="margin-top:10px" placeholder="Google Web client ID (apps.googleusercontent.com) — optional">
          <button class="btn primary block" style="margin-top:12px" data-a="cfgsave">Save &amp; connect</button>
+         <button class="btn ghost block" style="margin-top:10px" data-a="close">${t("common.close")}</button>
          <div class="tiny" id="acc-msg" style="margin-top:10px;text-align:center"></div>`,
-        (sheet) => {
+        (sheet, closeFn) => {
+          sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
           sheet.querySelector('[data-a="cfgsave"]')!.addEventListener("click", () => {
             const msg = sheet.querySelector("#acc-msg") as HTMLElement;
             const parsed = parseFirebaseSnippet((sheet.querySelector("#cfg-text") as HTMLTextAreaElement).value);
@@ -400,8 +402,10 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
          <div class="sub" style="margin-bottom:14px">Signed in as <b>${esc(email)}</b></div>
          <button class="btn primary block" data-a="sync">Sync now (backup + restore)</button>
          <button class="btn ghost block" style="margin-top:10px" data-a="out">Sign out</button>
+         <button class="btn ghost block" style="margin-top:10px" data-a="close">${t("common.close")}</button>
          <div class="tiny" id="acc-msg" style="margin-top:10px;text-align:center"></div>`,
-        (sheet) => {
+        (sheet, closeFn) => {
+          sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
           sheet.querySelector('[data-a="sync"]')!.addEventListener("click", async () => {
             const msg = sheet.querySelector("#acc-msg") as HTMLElement;
             msg.textContent = "…";
@@ -430,8 +434,10 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
          <button class="btn primary" data-a="reg" style="flex:1">Create account</button>
        </div>
        <button class="btn ghost block" style="margin-top:10px" data-a="google">Sign in with Google</button>
+       <button class="btn ghost block" style="margin-top:10px" data-a="close">${t("common.close")}</button>
        <div class="tiny" id="acc-msg" style="margin-top:10px;text-align:center"></div>`,
-      (sheet) => {
+      (sheet, closeFn) => {
+        sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
         const go = async (register: boolean) => {
           const msg = sheet.querySelector("#acc-msg") as HTMLElement;
           const mail = (sheet.querySelector("#acc-mail") as HTMLInputElement).value.trim();

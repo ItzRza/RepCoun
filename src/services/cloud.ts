@@ -79,6 +79,18 @@ export function currentUser(): string | null {
   return user?.email ?? null;
 }
 
+const GUEST_KEY = "repcoun:guest";
+
+/** Guest mode: everything works offline, internet features stay off. */
+export function isGuest(): boolean {
+  return localStorage.getItem(GUEST_KEY) === "1";
+}
+
+export function setGuest(v: boolean) {
+  if (v) localStorage.setItem(GUEST_KEY, "1");
+  else localStorage.removeItem(GUEST_KEY);
+}
+
 /** Watch login state changes. */
 export function onAuthChange(fn: (email: string | null) => void): () => void {
   init();

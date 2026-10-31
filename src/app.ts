@@ -12,6 +12,8 @@ import { renderProgress } from "./ui/screens/progress";
 import { renderLeaderboard } from "./ui/screens/leaderboard";
 import { renderProfile } from "./ui/screens/profile";
 import { renderOnboarding } from "./ui/screens/onboarding";
+import { renderLogin } from "./ui/screens/login";
+import { cloudReady, currentUser, isGuest } from "./services/cloud";
 import { openWorkout } from "./ui/screens/workout";
 import "./ui/screens/workout.css";
 
@@ -58,6 +60,12 @@ export class App {
     });
 
     window.addEventListener("hashchange", () => this.readHash());
+
+    // Login at app start — guest mode keeps everything offline and skips it.
+    if (cloudReady() && !isGuest() && !currentUser()) {
+      renderLogin(this.root, this.ctx(), () => this.start());
+      return;
+    }
 
     if (!this.settings.onboardingDone) {
       renderOnboarding(this.root, this.ctx());

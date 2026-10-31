@@ -580,7 +580,18 @@ class RepCounPlugin : Plugin() {
                 googleCall?.resolve(d)
             } catch (t: Throwable) {
                 val d = JSObject()
-                d.put("error", t.message ?: "google sign-in failed")
+                val msg = if (t is ApiException) {
+                    when (t.statusCode) {
+                        10 -> "Google setup error (code 10) — the SHA-1 fingerprint is missing in Firebase"
+                        12500 -> "Google Play services is outdated — update it in the Play Store"
+                        12501 -> "Google sign-in cancelled"
+                        12502 -> "Google sign-in failed, try again"
+                        else -> "Google error ${t.statusCode}"
+                    }
+                } else {
+                    t.message ?: "google sign-in failed"
+                }
+                d.put("error", msg)
                 googleCall?.resolve(d)
             }
             googleCall = null
