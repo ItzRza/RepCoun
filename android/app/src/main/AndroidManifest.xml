@@ -36,6 +36,17 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
+        <!-- Lets the workout card be handed straight to Facebook / X / Instagram -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.shareprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/share_paths"></meta-data>
+        </provider>
+
         <!-- Health Connect: privacy policy / data-usage rationale screen.
              REQUIRED — without this activity and the ViewPermissionUsageActivity
              alias below, the Health Connect permission dialog silently fails to

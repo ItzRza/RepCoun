@@ -34,6 +34,7 @@ type Plugin = {
   hcDiag(): Promise<HcDiag>;
   camDiag(): Promise<{ permGranted: boolean; hasCamera: boolean; sdk: number }>;
   googleSignIn(o: { webClientId: string }): Promise<{ idToken?: string; email?: string; error?: string }>;
+  shareImage(o: { platform: string; dataUrl: string }): Promise<{ ok?: boolean; error?: string }>;
   hcReadHeartRate(): Promise<{ bpm: number | null; at: number | null }>;
   hcReadSessions(o: { days: number }): Promise<{ sessions: HcSession[]; ok: boolean; error?: string }>;
   hcWriteSession(o: {
@@ -314,6 +315,28 @@ export const health = {
       return await p.googleSignIn({ webClientId });
     } catch (e) {
       return { error: errText(e) };
+    }
+  },
+
+  /**
+   * Hand the workout card straight to an app:
+   * facebook / x / instagram_post / instagram_story / chooser (all apps).
+   * Returns null on success, or an error string (app not installed etc.).
+   */
+  async shareImage(platform: string, dataUrl: string): Promise<string | null> {
+    const p = plugin();
+    if (!p) return "not native";
+    log.i("share", `shareTo ${platform}`);
+    try {
+      const r = await p.shareImage({ platform, dataUrl });
+      if (r?.error) {
+        log.e("share", r.error);
+        return r.error;
+      }
+      return null;
+    } catch (e) {
+      log.e("share", `shareImage FAIL ${errText(e)}`);
+      return errText(e);
     }
   },
 };

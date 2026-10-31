@@ -496,6 +496,62 @@ class RepCounPlugin : Plugin() {
 
     /* ------------------------------ helpers ------------------------------ */
 
+    /**
+     * Hand the workout card straight to an app:
+     * facebook / x / instagram_post / instagram_story / chooser (all apps).
+     * The card (a base64 JPEG) is written to cache and shared via FileProvider.
+     */
+    @PluginMethod
+    fun shareImage(call: PluginCall) {
+        val platform = call.getString("platform") ?: "chooser"
+        val dataUrl = call.getString("dataUrl") ?: return call.reject("no image")
+        val b64 = dataUrl.substringAfter(",", "")
+        if (b64.isEmpty()) return call.reject("bad image")
+        val bytes = try {
+            android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+        } catch (t: Throwable) {
+            return call.reject("bad image data")
+        }
+        val act = activity ?: return call.reject("no activity")
+        try {
+            val dir = java.io.File(act.cacheDir, "share")
+            dir.mkdirs()
+            val file = java.io.File(dir, "repcoun-${System.currentTimeMillis()}.jpg")
+            file.writeBytes(bytes)
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                act, "${act.packageName}.shareprovider", file
+            )
+            val pkg = when (platform) {
+                "facebook" -> "com.facebook.katana"
+                "x" -> "com.twitter.android"
+                "instagram_post", "instagram_story" -> "com.instagram.android"
+                else -> null
+            }
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "image/jpeg"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                if (pkg != null) setPackage(pkg)
+            }
+            try {
+                if (pkg != null) act.startActivity(intent)
+                else act.startActivity(Intent.createChooser(intent, "Share RepCoun card"))
+            } catch (t: Throwable) {
+                // that app is not installed → offer every app instead
+                if (pkg != null) {
+                    act.startActivity(
+                        Intent.createChooser(Intent(intent).apply { setPackage(null) }, "Share RepCoun card")
+                    )
+                } else throw t
+            }
+            val res = JSObject()
+            res.put("ok", true)
+            call.resolve(res)
+        } catch (t: Throwable) {
+            call.reject(t.message ?: "share failed")
+        }
+    }
+
     override fun handleOnResume() {
         super.handleOnResume()
     }

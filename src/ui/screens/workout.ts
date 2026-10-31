@@ -131,6 +131,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   let tickTimer: number | null = null;
   let lastCloud = 0;
   let noPersonSince = 0;
+  let gateFailSince = 0;
   let closed = false;
 
   const toast = (msg: string, kind: "good" | "bad" | "info" = "info") => {
@@ -165,6 +166,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
 
   function setExercise(def: ExerciseDef | null, announce = false) {
     current = def;
+    gateFailSince = 0;
     calories.setExercise(def);
     detector = def ? new RepCounter(def, hooks, store.getSettings().repDepthPct) : null;
     auto.reset();
@@ -338,22 +340,38 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
         (trackPill.querySelector(".txt") as HTMLElement).textContent = t("workout.tracking");
         overlay.querySelector(".frame-brackets")?.classList.remove("hidden");
 
+        // Pose gate: reps only count while the body is in this exercise's
+        // position. In auto mode, if the pose stops matching for a couple of
+        // seconds the exercise is dropped and re-detected — this was the
+        // "176 push-ups" bug (standing arm swings kept counting).
+        const gateOk = !current || current.mode === "timed" || !current.gate || current.gate(f);
+
         if (selected === AUTO) {
-          const id = auto.update(f);
-          if (id && current?.id !== id) setExercise(EXERCISE_MAP[id], true);
-          // optional cloud assist when online & configured
-          if (isOnline() && getCloudEndpoint() && Date.now() - lastCloud > 6000) {
-            lastCloud = Date.now();
-            try {
-              const frame = document.createElement("canvas");
-              frame.width = 320; frame.height = 240;
-              frame.getContext("2d")!.drawImage(video, 0, 0, 320, 240);
-              const cid = await cloudAssist(frame.toDataURL("image/jpeg", 0.6));
-              if (cid && current?.id !== cid) setExercise(EXERCISE_MAP[cid], true);
-            } catch { /* ignore */ }
+          if (!gateOk) {
+            gateFailSince = gateFailSince || Date.now();
+            if (Date.now() - gateFailSince > 2200) {
+              setExercise(null); // drop and re-detect
+            }
+          } else {
+            gateFailSince = 0;
+            const id = auto.update(f);
+            if (id && current?.id !== id) setExercise(EXERCISE_MAP[id], true);
+            // optional cloud assist when online & configured
+            if (isOnline() && getCloudEndpoint() && Date.now() - lastCloud > 6000) {
+              lastCloud = Date.now();
+              try {
+                const frame = document.createElement("canvas");
+                frame.width = 320; frame.height = 240;
+                frame.getContext("2d")!.drawImage(video, 0, 0, 320, 240);
+                const cid = await cloudAssist(frame.toDataURL("image/jpeg", 0.6));
+                if (cid && current?.id !== cid) setExercise(EXERCISE_MAP[cid], true);
+              } catch { /* ignore */ }
+            }
           }
+        } else {
+          gateFailSince = 0;
         }
-        detector?.update(f, performance.now());
+        if (gateOk) detector?.update(f, performance.now());
         calories.tick(Date.now(), hr);
         kcalEl.textContent = String(Math.round(calories.total));
       } else {
@@ -476,7 +494,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     void sheet;
   }
 
-  /** Render a workout card and open the phone's share sheet (X, Facebook, Instagram…). */
+  /** Render a workout card, then show a share picker that opens the chosen app. */
   async function shareWorkout(count: number, kcal: number, durationSec: number, isTimed: boolean) {
     try {
       const c = document.createElement("canvas");
@@ -502,20 +520,73 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
       x.font = "36px sans-serif";
       x.fillText("repcoun · ai rep counter", c.width / 2, 1230);
 
-      const blob: Blob | null = await new Promise((res) => c.toBlob((b) => res(b), "image/png"));
-      const nav = navigator as unknown as {
-        canShare?: (d: unknown) => boolean;
-        share?: (d: unknown) => Promise<void>;
-      };
+      const dataUrl = c.toDataURL("image/png");
       const text = `${current ? t(`exercise.${current.i18n}`) : t("workout.auto")}: ${count} ${isTimed ? "s" : t("home.reps")} · ${kcal} kcal — RepCoun`;
-      if (blob && nav.canShare?.({ files: [new File([blob], "repcoun.png", { type: "image/png" })] })) {
-        await nav.share?.({ files: [new File([blob], "repcoun.png", { type: "image/png" })], text, title: "RepCoun" });
-      } else if (nav.share) {
-        await nav.share({ text, title: "RepCoun" });
-      } else {
-        await navigator.clipboard?.writeText(text);
-        ctx.toast("copied — paste it into any app", "good");
-      }
+
+      // browser fallback: system share sheet, else clipboard
+      const fallbackShare = async () => {
+        const nav2 = navigator as unknown as {
+          canShare?: (d: unknown) => boolean;
+          share?: (d: unknown) => Promise<void>;
+        };
+        const blob: Blob | null = await new Promise((res) => c.toBlob((b2) => res(b2), "image/png"));
+        if (blob && nav2.canShare?.({ files: [new File([blob], "repcoun.png", { type: "image/png" })] })) {
+          await nav2.share?.({ files: [new File([blob], "repcoun.png", { type: "image/png" })], text, title: "RepCoun" });
+        } else if (nav2.share) {
+          await nav2.share({ text, title: "RepCoun" });
+        } else {
+          await navigator.clipboard?.writeText(text);
+          ctx.toast("copied — paste it into any app", "good");
+        }
+      };
+
+      const IG = "background:linear-gradient(45deg,#f09433,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888)";
+      ctx.openSheet(
+        `<div class="h2" style="text-align:center;margin-bottom:14px">RepCoun : ${count} ${isTimed ? "s" : t("home.reps")}</div>
+         <div style="display:flex;justify-content:center;margin-bottom:16px">
+           <img src="${dataUrl}" style="width:150px;border-radius:16px;border:1px solid var(--line);box-shadow:0 10px 28px rgba(0,0,0,.22)">
+         </div>
+         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+           <button class="btn lg" data-p="facebook" style="background:#1877F2;color:#fff;flex-direction:column;gap:8px">
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.09 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.96h-1.51c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.09 24 18.1 24 12.07z"/></svg>
+             Facebook
+           </button>
+           <button class="btn lg" data-p="x" style="background:#000;color:#fff;flex-direction:column;gap:8px">
+             <svg width="21" height="21" viewBox="0 0 24 24" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+             X (Twitter)
+           </button>
+           <button class="btn lg" data-p="instagram_post" style="${IG};color:#fff;flex-direction:column;gap:8px">
+             <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.3" cy="6.7" r="1.3" fill="#fff" stroke="none"/></svg>
+             Instagram Post
+           </button>
+           <button class="btn lg" data-p="instagram_story" style="background:linear-gradient(45deg,#833ab4,#fd1d1d 60%,#fcb045);color:#fff;flex-direction:column;gap:8px">
+             <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9" stroke-dasharray="4 3"/><circle cx="12" cy="12" r="4.5"/></svg>
+             Instagram Story
+           </button>
+         </div>
+         <button class="btn ghost block" style="margin-top:12px" data-p="chooser">More apps…</button>
+         <button class="btn ghost block" style="margin-top:10px" data-a="close">${t("common.close")}</button>`,
+        (sheet, closeFn) => {
+          sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
+          sheet.querySelectorAll<HTMLButtonElement>("[data-p]").forEach((b) => {
+            b.addEventListener("click", async () => {
+              const p = b.dataset.p!;
+              if (health.isNative()) {
+                const err = await health.shareImage(p, dataUrl);
+                if (err) {
+                  await navigator.clipboard?.writeText(text);
+                  ctx.toast("app not installed — text copied", "info");
+                  return;
+                }
+                closeFn();
+              } else {
+                await fallbackShare();
+                closeFn();
+              }
+            });
+          });
+        }
+      );
     } catch {
       ctx.toast("share failed", "bad");
     }

@@ -25,6 +25,7 @@ interface Channel {
   activeSince: number | null;
   bottomDwell: number;
   restAt: number | null;
+  lastRepAt: number;
   smooth: OneEuro;
 }
 
@@ -35,6 +36,7 @@ function makeChannel(): Channel {
     activeSince: null,
     bottomDwell: 0,
     restAt: null,
+    lastRepAt: 0,
     smooth: new OneEuro(1.4, 0.03),
   };
 }
@@ -51,9 +53,10 @@ function channelValue(f: BodyFeatures, joint: TrackJoint, idx: number): number {
 
 export class RepCounter {
   private channels: Channel[];
-  private lastRepAt = 0;
   private holdAcc = 0;
   private lastTickAt = 0;
+  /** min gap between two counted reps — kills jitter double-counts */
+  private cooldownMs: number;
   /** deepest flexion achieved in the current rep (form feedback) */
   private depthPeak = 0;
 
@@ -77,12 +80,14 @@ export class RepCounter {
     // Mountain-climbers & similar alternate legs — count each leg separately.
     const dual = def.id === "mountainclimber" || def.id === "highknees";
     this.channels = dual ? [makeChannel(), makeChannel()] : [makeChannel()];
+    // Dual-leg exercises alternate quickly (each leg gets its own channel);
+    // single-joint exercises must stay paused ~0.4 s between reps.
+    this.cooldownMs = dual ? 150 : 400;
   }
 
   reset() {
     this.channels = this.channels.map(makeChannel);
     this.holdAcc = 0;
-    this.lastRepAt = 0;
     this.depthPeak = 0;
   }
 
@@ -149,10 +154,10 @@ export class RepCounter {
           if (inRest) {
             const bottomMs = tMs - (ch.activeSince ?? tMs);
             const totalMs = tMs - (ch.restAt ?? ch.activeSince ?? tMs);
-            const cooldownOk = tMs - this.lastRepAt > 220;
+            const cooldownOk = tMs - ch.lastRepAt > this.cooldownMs;
 
             if (bottomMs >= this.def.minBottomMs && totalMs >= this.def.minRepMs && cooldownOk) {
-              this.lastRepAt = tMs;
+              ch.lastRepAt = tMs;
               ch.state = "rest";
               ch.restAt = tMs;
               this.hooks.onRep(Math.round(this.depthPeak));

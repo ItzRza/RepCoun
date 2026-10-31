@@ -68,6 +68,9 @@ export interface ExerciseDef {
   minBottomMs: number;
   /** minimum total rep time — else "too fast" */
   minRepMs: number;
+  /** the body must be in this position for this exercise's reps to count
+   *  (stops arm-swings while standing being counted as push-ups etc.) */
+  gate?: (f: BodyFeatures) => boolean;
   /** auto-detection score for this frame (0..1) */
   score: (f: BodyFeatures) => number;
   /** for timed exercises (plank, wall sit…): is this frame a valid hold? */
@@ -192,6 +195,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "pushup", i18n: "pushup", emoji: "💪", met: 8.0, kcalPerRep70: 0.36,
     mode: "reps", joint: "elbow", start: "high", top: 158, bottom: 92,
     minBottomMs: 220, minRepMs: 650,
+    gate: (f) => f.torsoTilt > 50 && (f.pronePushup > 0.18 || f.plankPose > 0.2),
     score: (f) => clamp(f.pronePushup * 1.15 - f.supineBent * 0.5, 0, 1),
     tip: "pushup_tip",
   },
@@ -199,6 +203,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "squat", i18n: "squat", emoji: "🦵", met: 5.5, kcalPerRep70: 0.33,
     mode: "reps", joint: "knee", start: "high", top: 160, bottom: 103,
     minBottomMs: 180, minRepMs: 620,
+    gate: (f) => f.torsoTilt < 55 && f.conf > 0.4,
     score: (f) => (standing(f) ? clamp(1 - Math.abs(f.kneeAvg - 168) / 30, 0, 1) * 0.8 : 0),
     tip: "squat_tip",
   },
@@ -206,6 +211,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "situp", i18n: "situp", emoji: "🧘", met: 4.0, kcalPerRep70: 0.26,
     mode: "reps", joint: "hip", start: "high", top: 138, bottom: 86,
     minBottomMs: 200, minRepMs: 750,
+    gate: (f) => f.torsoTilt > 35,
     score: (f) => clamp(f.supineBent * 0.95 - f.pronePushup * 0.6, 0, 1),
     tip: "situp_tip",
   },
@@ -213,6 +219,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "pullup", i18n: "pullup", emoji: "🚪", met: 8.5, kcalPerRep70: 0.52,
     mode: "reps", joint: "elbow", start: "high", top: 155, bottom: 92,
     minBottomMs: 200, minRepMs: 800,
+    gate: (f) => f.torsoTilt < 45,
     score: (f) => (f.hanging ? 1 : 0),
     tip: "pullup_tip",
   },
@@ -220,6 +227,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "jumpingjack", i18n: "jumpingjack", emoji: "⭐", met: 8.5, kcalPerRep70: 0.28,
     mode: "reps", joint: "arm", start: "low", top: 60, bottom: 150,
     minBottomMs: 140, minRepMs: 480,
+    gate: (f) => f.torsoTilt < 55 && f.conf > 0.4,
     score: (f) => (standing(f) ? clamp((f.armAvg / 170) * 0.7 + clamp((f.legsOpen - 0.25) / 0.4, 0, 1) * 0.3, 0, 1) * 0.5 : 0),
     tip: "jack_tip",
   },
@@ -227,6 +235,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "lunge", i18n: "lunge", emoji: "🚶", met: 4.5, kcalPerRep70: 0.32,
     mode: "reps", joint: "knee", start: "high", top: 158, bottom: 105,
     minBottomMs: 200, minRepMs: 750,
+    gate: (f) => f.torsoTilt < 55 && f.conf > 0.4,
     score: (f) => (standing(f) && f.legAsym > 26 ? clamp(f.legAsym / 55, 0, 1) * 0.85 : 0),
     tip: "lunge_tip",
   },
@@ -242,6 +251,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "bicepcurl", i18n: "bicepcurl", emoji: "🏋️", met: 3.5, kcalPerRep70: 0.15,
     mode: "reps", joint: "elbow", start: "high", top: 155, bottom: 55,
     minBottomMs: 160, minRepMs: 600,
+    gate: (f) => f.torsoTilt < 55 && f.conf > 0.4,
     score: (f) => (standing(f) && Math.abs(f.elbowAvg - 120) < 80 ? clamp((f.armAvg < 80 ? 1 : 0.4), 0, 1) * 0.55 : 0),
     tip: "curl_tip",
   },
@@ -249,6 +259,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "shoulderpress", i18n: "shoulderpress", emoji: "🙆", met: 5.0, kcalPerRep70: 0.2,
     mode: "reps", joint: "elbow", start: "low", top: 96, bottom: 160,
     minBottomMs: 160, minRepMs: 650,
+    gate: (f) => f.torsoTilt < 55 && f.conf > 0.4,
     score: (f) => (standing(f) && f.armAvg > 95 ? 0.62 : 0),
     tip: "press_tip",
   },
@@ -263,6 +274,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "mountainclimber", i18n: "mountainclimber", emoji: "⛰️", met: 8.0, kcalPerRep70: 0.22,
     mode: "reps", joint: "knee", start: "high", top: 152, bottom: 96,
     minBottomMs: 120, minRepMs: 400,
+    gate: (f) => f.torsoTilt > 45,
     score: (f) => (f.pronePushup > 0.3 && f.legAsym > 18 ? clamp(f.legAsym / 50, 0, 1) * 0.8 : 0),
     tip: "mc_tip",
   },
@@ -270,6 +282,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "glutebridge", i18n: "glutebridge", emoji: "🍑", met: 3.0, kcalPerRep70: 0.22,
     mode: "reps", joint: "hip", start: "low", top: 104, bottom: 152,
     minBottomMs: 180, minRepMs: 700,
+    gate: (f) => f.torsoTilt > 32,
     score: (f) => clamp(f.supineBent * 0.9 - f.pronePushup * 0.5, 0, 1),
     tip: "bridge_tip",
   },
@@ -277,6 +290,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "legraise", i18n: "legraise", emoji: "🦿", met: 3.8, kcalPerRep70: 0.28,
     mode: "reps", joint: "hip", start: "high", top: 158, bottom: 92,
     minBottomMs: 180, minRepMs: 700,
+    gate: (f) => f.torsoTilt > 45,
     score: (f) => clamp(
       (f.torsoTilt > 60 && f.torsoTilt < 118 ? 0.55 : 0) +
         (f.kneeAvg > 145 ? 0.3 : 0) - f.pronePushup * 0.6 - f.supineBent * 0.35,
@@ -287,6 +301,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "lateralraise", i18n: "lateralraise", emoji: "🙌", met: 4.0, kcalPerRep70: 0.2,
     mode: "reps", joint: "arm", start: "low", top: 32, bottom: 82,
     minBottomMs: 150, minRepMs: 620,
+    gate: (f) => f.torsoTilt < 55 && f.conf > 0.4,
     score: (f) => (standing(f) && f.elbowAvg > 135 && f.armAvg > 42 && f.armAvg < 130 ? 0.62 : 0),
     tip: "lateralraise_tip",
   },
@@ -302,6 +317,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "highknees", i18n: "highknees", emoji: "🏃", met: 8.0, kcalPerRep70: 0.2,
     mode: "reps", joint: "knee", start: "high", top: 150, bottom: 100,
     minBottomMs: 100, minRepMs: 380,
+    gate: (f) => f.torsoTilt < 55 && f.conf > 0.4,
     score: () => 0, // looks too much like lunges — counted when selected manually
     tip: "highknees_tip",
   },
@@ -309,6 +325,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "donkeykick", i18n: "donkeykick", emoji: "🦶", met: 3.2, kcalPerRep70: 0.16,
     mode: "reps", joint: "hip", start: "low", top: 96, bottom: 148,
     minBottomMs: 160, minRepMs: 620,
+    gate: (f) => f.torsoTilt > 45,
     score: () => 0, // on hands & knees — counted when selected manually
     tip: "donkeykick_tip",
   },
@@ -316,6 +333,7 @@ export const EXERCISES: ExerciseDef[] = [
     id: "hipthrust", i18n: "hipthrust", emoji: "🍑", met: 3.6, kcalPerRep70: 0.24,
     mode: "reps", joint: "hip", start: "low", top: 104, bottom: 152,
     minBottomMs: 180, minRepMs: 700,
+    gate: (f) => f.torsoTilt > 32,
     score: () => 0, // same shape as glute bridge — counted when selected manually
     tip: "hipthrust_tip",
   },
