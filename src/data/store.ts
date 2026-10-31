@@ -12,6 +12,7 @@ const K = {
 export const DEFAULT_SETTINGS: Settings = {
   lang: "en",
   theme: "system",
+  themeStyle: "violet",
   weightKg: 70,
   heightCm: 170,
   age: 25,

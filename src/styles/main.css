@@ -58,6 +58,72 @@
   --shadow-l: 0 16px 48px rgba(0, 0, 0, 0.65);
 }
 
+/* ============================================================
+   Stylr theme — pure black / white, orange #e47831 accent,
+   #c7c7c7 / #8c8c8c text, #2b2b2b borders, 8px radius, Geist.
+   Picked in Profile → Theme → Style.
+   ============================================================ */
+[data-style="stylr"] {
+  /* light */
+  --bg: #f7f7f7;
+  --bg-elevated: #ffffff;
+  --card: #ffffff;
+  --card-2: #f1f1f1;
+  --text: #111111;
+  --text-2: #454545;
+  --muted: #8c8c8c;
+  --line: #e5e5e5;
+  --accent: #e47831;
+  --accent-2: #f09554;
+  --accent-soft: #fdefe6;
+  --grad: linear-gradient(135deg, #e47831 0%, #f5b183 100%);
+  --grad-2: linear-gradient(135deg, #c9631f 0%, #e47831 100%);
+  --radius-s: 6px;
+  --radius: 8px;
+  --radius-l: 12px;
+  --radius-xl: 16px;
+  --shadow-s: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow: 0 6px 22px rgba(0, 0, 0, 0.08);
+  --shadow-l: 0 14px 44px rgba(0, 0, 0, 0.14);
+}
+
+[data-style="stylr"][data-theme="dark"] {
+  /* Stylr dark — pure black */
+  --bg: #000000;
+  --bg-elevated: #0f0f0f;
+  --card: #0f0f0f; /* surface */
+  --card-2: #1a1a1a; /* surface elevated */
+  --text: #ffffff;
+  --text-2: #c7c7c7;
+  --muted: #8c8c8c;
+  --line: #2b2b2b;
+  --accent: #e47831;
+  --accent-2: #f09554;
+  --accent-soft: #2a170c;
+  --green-soft: #0c1d13;
+  --red-soft: #241012;
+  --amber-soft: #221a0c;
+  --blue-soft: #101a2e;
+  --grad: linear-gradient(135deg, #e47831 0%, #f5b183 100%);
+  --grad-2: linear-gradient(135deg, #b85514 0%, #e47831 100%);
+  --shadow-s: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow: 0 8px 26px rgba(0, 0, 0, 0.6);
+  --shadow-l: 0 16px 48px rgba(0, 0, 0, 0.72);
+}
+
+/* the violet header glow becomes an orange one in Stylr dark */
+[data-style="stylr"][data-theme="dark"] #app {
+  background:
+    radial-gradient(120% 55% at 50% -8%, rgba(228, 120, 49, 0.14) 0%, transparent 60%),
+    var(--bg);
+}
+
+/* Stylr ships with the Geist font (loaded on demand by app.ts) */
+[data-style="stylr"] body {
+  font-family: "Geist", "Inter Variable", "Inter", -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+}
+
 * {
   margin: 0;
   padding: 0;

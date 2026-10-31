@@ -21,6 +21,7 @@
         if (s.theme === "dark" || (!s.theme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
           document.documentElement.setAttribute("data-theme", "dark");
         }
+        if (s.themeStyle === "stylr") document.documentElement.setAttribute("data-style", "stylr");
         if (s.lang) document.documentElement.setAttribute("lang", s.lang);
       } catch (e) {}
     </script>

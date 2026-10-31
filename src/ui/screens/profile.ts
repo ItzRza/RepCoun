@@ -143,9 +143,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
           [t("profile.metric"), "metric"], [t("profile.imperial"), "imperial"],
         ], s.unit, (v) => ctx.saveSettings({ unit: v as "metric" | "imperial" }));
       case "language": return pickSheet(t("profile.language"), LOCALES.map((l) => [l.native, l.code] as [string, string]), s.lang, (v) => ctx.saveSettings({ lang: v }));
-      case "theme": return pickSheet(t("profile.theme"), [
-          [t("profile.light"), "light"], [t("profile.dark"), "dark"], [t("profile.system"), "system"],
-        ], s.theme, (v) => ctx.saveSettings({ theme: v as "light" | "dark" | "system" }));
+      case "theme": return themeSheet();
       case "model": return pickSheet(t("profile.model"), [
           [t("profile.model_full"), "full"], [t("profile.model_lite"), "lite"],
         ], s.model, (v) => {
@@ -236,6 +234,52 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
         });
       }
     );
+  }
+
+  /**
+   * Theme sheet: design style (Classic violet / Stylr black+orange) plus
+   * light-dark-system mode. Stays open so the new look previews live.
+   */
+  function themeSheet() {
+    const render = () => {
+      const cur = store.getSettings();
+      const row = (lab: string, val: string, kind: string, active: boolean) => `
+        <div class="list-row" data-v="${val}" data-k="${kind}">
+          <div style="flex:1" class="h3">${lab}</div>
+          ${active ? `<span style="color:var(--accent)">${icons.check}</span>` : ""}
+        </div>`;
+      return `<div class="h2" style="margin-bottom:6px">${t("profile.theme")}</div>
+        <div class="tiny" style="margin:12px 2px 6px">${t("profile.style")}</div>
+        <div class="list">
+          ${row(t("profile.style_classic"), "violet", "style", cur.themeStyle !== "stylr")}
+          ${row("Stylr", "stylr", "style", cur.themeStyle === "stylr")}
+        </div>
+        <div class="tiny" style="margin:14px 2px 6px">${t("profile.mode")}</div>
+        <div class="list">
+          ${row(t("profile.light"), "light", "mode", cur.theme === "light")}
+          ${row(t("profile.dark"), "dark", "mode", cur.theme === "dark")}
+          ${row(t("profile.system"), "system", "mode", cur.theme === "system")}
+        </div>
+        <button class="btn ghost block" style="margin-top:14px" data-a="close">${t("common.close")}</button>`;
+    };
+    ctx.openSheet(render(), (sheet, closeFn) => {
+      const wire = () => {
+        sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
+        sheet.querySelectorAll("[data-v]").forEach((el) =>
+          el.addEventListener("click", () => {
+            const row = el as HTMLElement;
+            if (row.dataset.k === "style") {
+              ctx.saveSettings({ themeStyle: row.dataset.v as "violet" | "stylr" });
+            } else {
+              ctx.saveSettings({ theme: row.dataset.v as "light" | "dark" | "system" });
+            }
+            sheet.innerHTML = render(); // refresh the checks, keep the sheet open
+            wire();
+          })
+        );
+      };
+      wire();
+    });
   }
 
   /** Connect API — leaderboard server + friend group setup. */

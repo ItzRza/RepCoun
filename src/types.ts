@@ -1,8 +1,11 @@
 export type ThemeMode = "light" | "dark" | "system";
+/** design style: classic RepCoun violet, or the Stylr black+orange tokens */
+export type ThemeStyle = "violet" | "stylr";
 
 export interface Settings {
   lang: string;
   theme: ThemeMode;
+  themeStyle: ThemeStyle;
   weightKg: number;
   heightCm: number;
   age: number;

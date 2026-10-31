@@ -92,7 +92,7 @@ export class App {
       saveSettings: (p) => {
         store.saveSettings(p);
         this.settings = store.getSettings();
-        if (p.theme) this.applyTheme();
+        if (p.theme || p.themeStyle) this.applyTheme();
         if (p.lang) setLang(p.lang);
         this.render();
       },
@@ -120,6 +120,24 @@ export class App {
       s.theme === "dark" ||
       (s.theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    document.documentElement.setAttribute("data-style", s.themeStyle === "stylr" ? "stylr" : "violet");
+
+    // Stylr uses the Geist font — load it only when the style is active.
+    if (s.themeStyle === "stylr" && !document.getElementById("geist-font")) {
+      const link = document.createElement("link");
+      link.id = "geist-font";
+      link.rel = "stylesheet";
+      link.href =
+        "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap";
+      document.head.appendChild(link);
+    }
+
+    // Android status bar follows the style.
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      if (s.themeStyle === "stylr") meta.setAttribute("content", dark ? "#000000" : "#f7f7f7");
+      else meta.setAttribute("content", "#6d4aff");
+    }
   }
 
   private openSheet(html: string, onMount?: (sheet: HTMLElement, close: () => void) => void): () => void {
