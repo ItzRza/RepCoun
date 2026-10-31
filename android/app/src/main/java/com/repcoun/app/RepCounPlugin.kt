@@ -552,11 +552,126 @@ class RepCounPlugin : Plugin() {
         }
     }
 
+    /* ------------------------------ Wear OS ------------------------------ */
+
+    /**
+     * Starts the watch bridge. Called from JS only AFTER sign-in (guest mode
+     * excluded). Requests the POST_NOTIFICATIONS permission so the "start from
+     * your watch" wake-up notification can appear on Android 13+.
+     * Returns the current watch connection + any command that arrived while
+     * the app was closed (pendingStart).
+     */
+    @PluginMethod
+    fun wearInit(call: PluginCall) {
+        val autoOpen = call.getBoolean("autoOpen") ?: false
+        wearBridge?.stop()
+        wearBridge = WearBridge(
+            io(),
+            onEvent = { name, data, retained -> emitWear(name, data, retained) },
+            onStatus = { connected, node -> emitStatus(connected, node) }
+        ).also {
+            it.autoOpen = autoOpen
+            it.foreground = true
+            it.start()
+        }
+        // Best-effort notification permission (needed for the wake-up tap).
+        val granted = ContextCompat.checkSelfPermission(
+            io(), android.Manifest.permission.POST_NOTIFICATIONS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val act = activity as? MainActivity
+            act?.runOnUiThread { act.launchNotifPermission() }
+        }
+        val d = JSObject()
+        d.put("connected", wearBridge?.isConnected == true)
+        d.put("node", wearBridge?.nodeName ?: "")
+        WearBridge.takePending()?.let { p ->
+            d.put("pendingStart", p.optString("name", ""))
+            p.optJSONObject("data")?.let { dd -> d.put("pendingData", toJson(dd)) }
+        }
+        call.resolve(d)
+    }
+
+    /** Live connection check (Profile row refresh). */
+    @PluginMethod
+    fun wearStatus(call: PluginCall) {
+        val d = JSObject()
+        d.put("connected", wearBridge?.isConnected == true)
+        d.put("node", wearBridge?.nodeName ?: "")
+        call.resolve(d)
+    }
+
+    /** Phone → watch message (workout state, config, ack). */
+    @PluginMethod
+    fun wearSend(call: PluginCall) {
+        val path = call.getString("path") ?: return call.resolve(JSObject())
+        val data = call.getObject("data") ?: JSObject()
+        wearBridge?.send(path, toNativeJson(data))
+        call.resolve(JSObject())
+    }
+
+    @PluginMethod
+    fun wearDeinit(call: PluginCall) {
+        wearBridge?.stop()
+        wearBridge = null
+        call.resolve(JSObject())
+    }
+
+    /** Fires the JS listener "wearEvent" (rep/hr/start/auto/stop/…). */
+    private fun emitWear(name: String, data: JSONObject, retained: Boolean) {
+        val d = JSObject()
+        d.put("path", name)
+        d.put("data", toJson(data))
+        notifyListeners("wearEvent", d, retained)
+    }
+
+    /** Fires the JS listener "wearStatus" when the watch connects/disconnects. */
+    private fun emitStatus(connected: Boolean, node: String) {
+        val d = JSObject()
+        d.put("connected", connected)
+        d.put("node", node)
+        notifyListeners("wearStatus", d)
+    }
+
+    private fun toJson(o: JSONObject): JSObject {
+        val j = JSObject()
+        val it = o.keys()
+        while (it.hasNext()) {
+            val k = it.next()
+            j.put(k, o.opt(k))
+        }
+        return j
+    }
+
+    private fun toNativeJson(o: JSObject): JSONObject {
+        val j = JSONObject()
+        val keys = o.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            j.put(k, o.opt(k))
+        }
+        return j
+    }
+
     override fun handleOnResume() {
         super.handleOnResume()
+        val b = wearBridge ?: return
+        b.foreground = true
+        // A watch command parked while the app was closed — deliver it now.
+        WearBridge.takePending()?.let { p ->
+            emitWear(p.optString("name", ""), p.optJSONObject("data") ?: JSONObject(), true)
+        }
+    }
+
+    override fun handleOnPause() {
+        super.handleOnPause()
+        wearBridge?.foreground = false
     }
 
     companion object {
+        @Volatile
+        private var wearBridge: WearBridge? = null
+
         @Volatile
         private var cameraCall: PluginCall? = null
 

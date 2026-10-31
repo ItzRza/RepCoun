@@ -17,6 +17,7 @@ class MainActivity : BridgeActivity() {
     private var cameraLauncher: ActivityResultLauncher<Array<String>>? = null
     private var hcLauncher: ActivityResultLauncher<Set<String>>? = null
     private var googleLauncher: ActivityResultLauncher<Intent>? = null
+    private var notifLauncher: ActivityResultLauncher<Array<String>>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // CRITICAL: the Capacitor bridge is created INSIDE super.onCreate(), so the
@@ -57,6 +58,21 @@ class MainActivity : BridgeActivity() {
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             RepCounPlugin.handleGoogleResult(result.data)
+        }
+
+        // Wear OS wake-up notifications (Android 13+ runtime permission)
+        notifLauncher = activityResultRegistry.register(
+            "repcoun.notif",
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { /* best-effort — bridge works without notifications too */ }
+    }
+
+    /** Asks for the notification permission used by the watch wake-up tap. */
+    fun launchNotifPermission() {
+        try {
+            notifLauncher?.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+        } catch (t: Throwable) {
+            // Older Android or blocked dialog — the bridge still works
         }
     }
 

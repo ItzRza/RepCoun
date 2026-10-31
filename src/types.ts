@@ -1,5 +1,5 @@
 export type ThemeMode = "light" | "dark" | "system";
-/** design style: classic RepCoun violet, or the Stylr black+orange tokens */
+/** design style: classic RepCoun (white/blue light, black/blue-gray dark) or Stylr black+orange */
 export type ThemeStyle = "violet" | "stylr";
 
 export interface Settings {
@@ -20,6 +20,10 @@ export interface Settings {
   repGoal: number; // daily reps goal
   /** how much of the movement must be done to count a rep (percent of the standard depth) */
   repDepthPct: number;
+  /** where reps come from while working out: the phone camera, the watch, or both */
+  watchMode: "phone" | "watch" | "both";
+  /** auto-open a workout on the phone when the watch detects a sport */
+  watchAutoOpen: boolean;
   onboardingDone: boolean;
 }
 

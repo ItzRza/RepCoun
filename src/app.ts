@@ -13,7 +13,10 @@ import { renderLeaderboard } from "./ui/screens/leaderboard";
 import { renderProfile } from "./ui/screens/profile";
 import { renderOnboarding } from "./ui/screens/onboarding";
 import { renderLogin } from "./ui/screens/login";
-import { cloudReady, currentUser, isGuest } from "./services/cloud";
+import { cloudReady, currentUser, isGuest, onAuthChange } from "./services/cloud";
+import { health } from "./services/health";
+import { watchInit, watchDeinit, watchSend, subscribeWatch } from "./services/watch";
+import { EXERCISE_MAP } from "./engine/exercises";
 import { openWorkout } from "./ui/screens/workout";
 import "./ui/screens/workout.css";
 
@@ -44,6 +47,9 @@ export class App {
   private profile: Profile = store.getProfile();
   private root: HTMLElement;
   private cleanup: (() => void)[] = [];
+  /** Wear OS bridge is up (only after sign-in) */
+  private watchBound = false;
+  private watchOff: (() => void) | null = null;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -73,6 +79,48 @@ export class App {
     }
     this.readHash(true);
     this.render();
+
+    // Wear OS bridge — cloud account required (guest mode excluded).
+    onAuthChange((email) => void this.syncWatch(email));
+  }
+
+  /**
+   * Starts/stops the watch bridge as the auth state changes. The watch can
+   * start a workout on the phone and stream reps + heart rate into it.
+   */
+  private async syncWatch(email: string | null) {
+    const want = !!email && health.isNative();
+    if (want && !this.watchBound) {
+      this.watchBound = true;
+      const r = await watchInit();
+      this.watchOff = subscribeWatch((path, data) => {
+        if (path === "start") {
+          this.watchStart(String((data as { exercise?: unknown }).exercise ?? ""));
+        } else if (path === "auto" && store.getSettings().watchAutoOpen) {
+          this.watchStart("");
+        } else if (path === "conn" && this.route === "profile") {
+          this.render();
+        }
+      });
+      if (r?.connected) this.toast(`Smartwatch connected — ${r.node}`, "good");
+      const p = r?.pending;
+      if (p && (p.path === "start" || (p.path === "auto" && store.getSettings().watchAutoOpen))) {
+        this.watchStart(String((p.data as { exercise?: unknown }).exercise ?? ""));
+      }
+    } else if (!want && this.watchBound) {
+      this.watchBound = false;
+      this.watchOff?.();
+      this.watchOff = null;
+      await watchDeinit();
+    }
+  }
+
+  /** Watch asked to count — open the workout screen (any mode). */
+  private watchStart(exId: string) {
+    // "workout" is an overlay, not a route — guard on the live DOM instead.
+    if (document.querySelector(".workout") || !this.settings.onboardingDone) return;
+    const ex = exId && exId !== "auto" && EXERCISE_MAP[exId] ? exId : undefined;
+    this.ctx().startWorkout(ex);
   }
 
   private readHash(first = false) {
@@ -94,6 +142,10 @@ export class App {
         this.settings = store.getSettings();
         if (p.theme || p.themeStyle) this.applyTheme();
         if (p.lang) setLang(p.lang);
+        if (this.watchBound && (p.watchMode || p.watchAutoOpen !== undefined)) {
+          const s = store.getSettings();
+          void watchSend("config", { mode: s.watchMode, autoDetect: s.watchAutoOpen });
+        }
         this.render();
       },
       saveProfile: (p) => {
@@ -136,7 +188,7 @@ export class App {
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
       if (s.themeStyle === "stylr") meta.setAttribute("content", dark ? "#000000" : "#f7f7f7");
-      else meta.setAttribute("content", "#6d4aff");
+      else meta.setAttribute("content", dark ? "#4d8dff" : "#2563eb");
     }
   }
 

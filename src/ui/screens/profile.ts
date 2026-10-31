@@ -13,6 +13,7 @@ import { runCalibration } from "../calibrate";
 import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
 import { getLbApi, setLbApi, testLbApi, downloadProgress } from "../../services/lbapi";
 import { cloudReady, currentUser, isGuest, hasGoogle, hasPassword, linkGoogle, addPassword, signIn, signUp, signInWithGoogle, logOut, restoreSessions, saveUserData, configureCloud } from "../../services/cloud";
+import { watchConnected, watchNode, watchStatusNow } from "../../services/watch";
 import { parseFirebaseSnippet } from "../../services/firebase-config";
 import type { Session } from "../../types";
 
@@ -80,6 +81,26 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       </div>
       <button class="btn soft block" id="hc-btn" style="margin-top:12px" data-a="hc">${t("profile.hc_grant")}</button>
     </div>
+
+    ${health.isNative() ? `
+    <div class="section-title"><div class="h2">Smartwatch</div></div>
+    ${!currentUser() ? `
+    <div class="card">
+      <div class="row" style="align-items:flex-start;gap:14px">
+        <div style="width:42px;height:42px;flex:none;border-radius:13px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent)">${icons.clock}</div>
+        <div style="flex:1;min-width:0">
+          <div class="h3">Sign in to use smartwatch features</div>
+          <div class="tiny" style="margin-top:3px">Watch rep counting, live heart rate and remote start need a cloud account.</div>
+        </div>
+      </div>
+      <button class="btn primary block" style="margin-top:12px" data-a="account">Sign in</button>
+    </div>` : `
+    <div class="list">
+      ${rowDesc("watchconn", icons.clock, "Watch connection", "RepCoun on your watch pairs by itself", watchStatusText())}
+      ${row("watchmode", icons.sync, "Counting source", watchModeLabel(s.watchMode))}
+      ${toggleRow("watchauto", icons.bolt, "Auto-start from watch", "Open RepCoun when your watch sees a workout", s.watchAutoOpen)}
+      ${row("watchhelp", icons.info, "Install on watch", "ADB")}
+    </div>`}` : ""}
 
     <div class="section-title"><div class="h2">${t("profile.advanced")}</div></div>
     <div class="sub" style="margin:0 2px 10px">${t("profile.advanced_desc")}</div>
@@ -170,12 +191,86 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       case "autodetect": return ctx.saveSettings({ autoDetect: !s.autoDetect });
       case "sound": return ctx.saveSettings({ sound: !s.sound, haptics: !s.haptics });
       case "trackToHc": return ctx.saveSettings({ trackToHc: !s.trackToHc });
+      case "watchconn": return watchStatusSheet();
+      case "watchmode": return pickSheet("Counting source", [
+          ["Phone camera", "phone"], ["Watch sensors", "watch"], ["Camera + watch", "both"],
+        ], s.watchMode, (v) => ctx.saveSettings({ watchMode: v as "phone" | "watch" | "both" }),
+        "Both = camera and watch count together, watch heart rate included.");
+      case "watchauto": return ctx.saveSettings({ watchAutoOpen: !s.watchAutoOpen });
+      case "watchhelp": return watchHelpSheet();
       case "hc": return void connectHc();
       case "cloud": return cloudSheet();
       case "lbapi": return lbSheet();
       case "clear": return clearSheet();
       case "about": return logsSheet();
     }
+  }
+
+  /* ------------------------------ smartwatch ------------------------------ */
+  function watchStatusText(): string {
+    return watchConnected() ? `Connected — ${watchNode()}` : "Not connected";
+  }
+
+  function watchModeLabel(m: "phone" | "watch" | "both"): string {
+    return m === "phone" ? "Phone camera" : m === "watch" ? "Watch sensors" : "Camera + watch";
+  }
+
+  function watchStatusSheet() {
+    void watchStatusNow(); // freshen the cache — conn events re-render the row
+    const conn = watchConnected();
+    ctx.openSheet(
+      `<div class="h2">Watch connection</div>
+       <div class="row" style="gap:10px;margin:12px 0;flex-wrap:wrap">
+         <span class="badge ${conn ? "green" : ""}">${conn ? "● Connected" : "○ Not connected"}</span>
+         ${conn ? `<span class="sub">${esc(watchNode())}</span>` : ""}
+       </div>
+       <div class="sub" style="margin-bottom:14px">Sign in to RepCoun on the phone AND on the watch — both apps are the same package with the same key, so they pair by themselves. No code to type.</div>
+       ${conn ? "" : `<button class="btn soft block" data-a="help">How to install on my watch</button>`}
+       <button class="btn primary block" style="margin-top:10px" data-a="close">${t("common.close")}</button>`,
+      (sheet, closeFn) => {
+        sheet.querySelector('[data-a="help"]')?.addEventListener("click", () => {
+          closeFn();
+          watchHelpSheet();
+        });
+        sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
+      }
+    );
+  }
+
+  /** English ADB sideload steps — works on every Wear OS watch. */
+  function watchHelpSheet() {
+    const steps: Array<[string, string]> = [
+      ["1", "Watch: Settings → About → tap <b>Software version</b> 7 times to unlock Developer options, then open <b>Developer options</b> and turn on <b>ADB debugging</b> + <b>Debug over Wi-Fi</b>."],
+      ["2", "Write down the address it shows, e.g. <b>192.168.1.8:5555</b> (same Wi-Fi as your computer)."],
+      ["3", "Computer with ADB: <b>adb connect 192.168.1.8:5555</b>, then <b>adb install RepCoun-Wear.apk</b>."],
+      ["4", "Open RepCoun on the watch while signed in here — it finds the phone by itself and you're ready."],
+    ];
+    ctx.openSheet(
+      `<div class="h2">Install RepCoun on your watch</div>
+       <div class="sub" style="margin-bottom:12px">Every Wear OS watch: Galaxy Watch 4–8, Pixel Watch, TicWatch, …</div>
+       <div class="list">
+         ${steps
+           .map(
+             ([n, txt]) => `
+         <div class="list-row" style="cursor:default;align-items:flex-start">
+           <div style="width:30px;height:30px;flex:none;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:800">${n}</div>
+           <div class="tiny" style="flex:1;line-height:1.55">${txt}</div>
+         </div>`
+           )
+           .join("")}
+       </div>
+       <button class="btn soft block" style="margin-top:12px" data-a="dl">Download RepCoun-Wear.apk</button>
+       <button class="btn primary block" style="margin-top:10px" data-a="close">${t("common.close")}</button>`,
+      (sheet, closeFn) => {
+        sheet.querySelector('[data-a="dl"]')!.addEventListener("click", () => {
+          window.open(
+            "https://github.com/ItzRza/RepCoun/releases/latest/download/RepCoun-Wear.apk",
+            "_blank"
+          );
+        });
+        sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
+      }
+    );
   }
 
   function nameSheet() {

@@ -1,22 +1,23 @@
 /* ============================================================
    RepCoun Design System — classic + modern
-   Inspired by Repsify: clean white, violet gradient, rounded
+   Light: white surfaces with a blue accent.
+   Dark: black with soft blue-gray surfaces and a soft blue accent.
    ============================================================ */
 
 :root {
-  --bg: #f8f7fc;
+  --bg: #f6f8fc;
   --bg-elevated: #ffffff;
   --card: #ffffff;
-  --card-2: #faf9fe;
-  --text: #262336;
-  --text-2: #63607a;
-  --muted: #9a97ad;
-  --line: #edecf5;
-  --accent: #7a5cff;
-  --accent-2: #a78bfa;
-  --accent-soft: #f1edff;
-  --grad: linear-gradient(135deg, #8b6cff 0%, #b794f6 100%);
-  --grad-2: linear-gradient(135deg, #5b3df5 0%, #8b6cff 100%);
+  --card-2: #f1f5fb;
+  --text: #17223a;
+  --text-2: #55617a;
+  --muted: #93a0b8;
+  --line: #e4eaf3;
+  --accent: #2563eb;
+  --accent-2: #60a5fa;
+  --accent-soft: #e8f0fe;
+  --grad: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
+  --grad-2: linear-gradient(135deg, #1d4fd8 0%, #2563eb 100%);
   --green: #22c55e;
   --green-soft: #e6f9ed;
   --red: #ef4444;
@@ -29,30 +30,30 @@
   --radius: 18px;
   --radius-l: 24px;
   --radius-xl: 30px;
-  --shadow-s: 0 1px 3px rgba(122, 92, 255, 0.05);
-  --shadow: 0 6px 22px rgba(122, 92, 255, 0.07);
-  --shadow-l: 0 14px 44px rgba(122, 92, 255, 0.13);
+  --shadow-s: 0 1px 3px rgba(37, 99, 235, 0.05);
+  --shadow: 0 6px 22px rgba(37, 99, 235, 0.08);
+  --shadow-l: 0 14px 44px rgba(37, 99, 235, 0.14);
   --nav-h: 68px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 [data-theme="dark"] {
-  --bg: #0b0a13;
-  --bg-elevated: #14121f;
-  --card: #181527;
-  --card-2: #201c31;
-  --text: #f3f1fb;
-  --text-2: #b6b1cd;
-  --muted: #7e7999;
-  --line: #2a2540;
-  --accent: #9d7bff;
-  --accent-2: #c4a5ff;
-  --accent-soft: #271f4a;
-  --green-soft: #10281c;
-  --red-soft: #2c1418;
-  --amber-soft: #2b2110;
-  --blue-soft: #141f3a;
+  --bg: #0a0d13;
+  --bg-elevated: #10151f;
+  --card: #141a26;
+  --card-2: #1a2130;
+  --text: #e9eef7;
+  --text-2: #aab6c9;
+  --muted: #7a8699;
+  --line: #242c3b;
+  --accent: #4d8dff;
+  --accent-2: #82b4ff;
+  --accent-soft: #17263f;
+  --green-soft: #0d2118;
+  --red-soft: #2a1519;
+  --amber-soft: #28220f;
+  --blue-soft: #13223c;
   --shadow-s: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
   --shadow-l: 0 16px 48px rgba(0, 0, 0, 0.65);
@@ -167,7 +168,7 @@ select {
 
 [data-theme="dark"] #app {
   background:
-    radial-gradient(120% 55% at 50% -8%, rgba(124, 92, 255, 0.16) 0%, transparent 60%),
+    radial-gradient(120% 55% at 50% -8%, rgba(77, 141, 255, 0.16) 0%, transparent 60%),
     var(--bg);
 }
 

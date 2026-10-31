@@ -15,6 +15,7 @@ import { cloudAssist, getCloudEndpoint, isOnline } from "../../services/online";
 import { store } from "../../data/store";
 import { getLbApi, submitScore, uploadProgress } from "../../services/lbapi";
 import { currentUser, saveSession as cloudSaveSession, saveUserData } from "../../services/cloud";
+import { subscribeWatch, watchSend } from "../../services/watch";
 import { personalRecords } from "../../data/store";
 import { t } from "../../i18n/i18n";
 import { h, $, fmtDuration, haptic, beep, esc } from "../dom";
@@ -124,6 +125,8 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   let rejected = 0;
   let holdSecs = 0;
   let hr: number | null = null;
+  let hrHc: number | null = null; // Health Connect fallback poll (any synced watch)
+  let hrWatch: { bpm: number; at: number } | null = null; // live RepCoun watch stream
   let startTs = Date.now();
   let paused = false;
   let running = false;
@@ -133,6 +136,18 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   let noPersonSince = 0;
   let gateFailSince = 0;
   let closed = false;
+  /** where reps come from this session (phone camera / watch / both) */
+  const watchMode = settings.watchMode;
+  /** watch-only mode: no camera, no pose model — the watch streams the reps */
+  const camless = watchMode === "watch";
+  if (camless) {
+    (overlay.querySelector('[data-act="flip"]') as HTMLElement | null)?.classList.add("hidden");
+    (overlay.querySelector('[data-act="pip"]') as HTMLElement | null)?.classList.add("hidden");
+  }
+  /** in "both" mode a watch rep and a pose rep of one movement must not both count */
+  let lastRepAt = 0;
+  let lastRepSrc: "pose" | "watch" | null = null;
+  let offWatch: (() => void) | null = null;
 
   const toast = (msg: string, kind: "good" | "bad" | "info" = "info") => {
     const el = h(`<div class="toast ${kind}">${msg}</div>`);
@@ -176,6 +191,14 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
       if (announce) banner(t("workout.detected", { exercise: t(`exercise.${def.i18n}`) }));
     }
     renderChips();
+    if (running) {
+      // keep the watch label in sync (auto-detection switches included)
+      void watchSend("state", {
+        active: true,
+        exercise: def?.id ?? "auto",
+        label: def ? t(`exercise.${def.i18n}`) : t("workout.auto"),
+      });
+    }
   }
 
   chipsEl.addEventListener("click", (e) => {
@@ -187,20 +210,47 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   });
 
   /* --------------------------------- hooks -------------------------------- */
-  const hooks = {
-    onRep: (depth: number) => {
-      reps++;
-      breakdown[current?.id ?? "mixed"] = (breakdown[current?.id ?? "mixed"] ?? 0) + 1;
-      countEl.textContent = String(reps);
-      countEl.classList.remove("pop");
-      void countEl.offsetWidth;
-      countEl.classList.add("pop");
-      calories.addRep(current);
-      kcalEl.textContent = String(Math.round(calories.total));
-      if (settings.haptics) haptic(14);
-      if (settings.sound) beep(880 + Math.min(reps, 30) * 12);
+  /** Cross-source gate: in "both" mode a watch rep and a pose rep of the same
+   *  movement must not both count — whichever fires first wins for 400ms. */
+  function acceptRep(src: "pose" | "watch"): boolean {
+    const now = Date.now();
+    if (lastRepSrc && lastRepSrc !== src && now - lastRepAt < 400) return false;
+    lastRepAt = now;
+    lastRepSrc = src;
+    return true;
+  }
+
+  /** Counts one rep (from the camera OR the watch). depth = pose quality toast. */
+  function bumpRep(depth?: number) {
+    reps++;
+    breakdown[current?.id ?? "mixed"] = (breakdown[current?.id ?? "mixed"] ?? 0) + 1;
+    countEl.textContent = String(reps);
+    countEl.classList.remove("pop");
+    void countEl.offsetWidth;
+    countEl.classList.add("pop");
+    calories.addRep(current);
+    kcalEl.textContent = String(Math.round(calories.total));
+    if (settings.haptics) haptic(14);
+    if (settings.sound) beep(880 + Math.min(reps, 30) * 12);
+    if (depth !== undefined) {
       if (depth >= 72) toast(t("workout.deep"), "good");
       else toast(t("workout.great"), "good");
+    }
+  }
+
+  /** Heart rate: the live watch stream wins when fresh, Health Connect fills gaps. */
+  function mergeHr() {
+    const fresh = hrWatch && Date.now() - hrWatch.at < 8000 ? hrWatch.bpm : null;
+    hr = fresh ?? hrHc;
+    hrPill.classList.toggle("hidden", hr === null);
+    if (hr) hrEl.textContent = String(hr);
+  }
+
+  const hooks = {
+    onRep: (depth: number) => {
+      if (watchMode === "watch") return; // the watch counts in this mode
+      if (watchMode === "both" && !acceptRep("pose")) return;
+      bumpRep(depth);
     },
     onReject: (reason: RejectReason) => {
       rejected++;
@@ -402,6 +452,8 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   /* -------------------------------- actions ------------------------------- */
   function resetWorkout() {
     reps = 0; rejected = 0; holdSecs = 0;
+    lastRepAt = 0; lastRepSrc = null;
+    hrWatch = null;
     startTs = Date.now();
     calories = new CalorieTracker({ weightKg: settings.weightKg, age: settings.age, sex: settings.sex });
     calories.setExercise(current);
@@ -654,43 +706,74 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   async function boot() {
     bootDiag = "";
     bootError = "camera";
-    try {
-      await startCamera();
-    } catch (e) {
-      if (!bootDiag) bootDiag = describeErr(e);
-      showError();
-      return;
+    if (camless) {
+      // Watch-only mode: no camera, no pose model — the watch streams reps.
+      log.i("boot", "watch mode — camera and pose model skipped");
+      loadingEl.classList.add("hidden");
+      trackPill.classList.add("hidden");
+    } else {
+      try {
+        await startCamera();
+      } catch (e) {
+        if (!bootDiag) bootDiag = describeErr(e);
+        showError();
+        return;
+      }
+      bootError = "model";
+      log.i("model", `loading ${store.getSettings().model}`);
+      try {
+        engine = await PoseEngine.create({ model: store.getSettings().model });
+        log.i("model", "loaded ok");
+      } catch (e) {
+        bootDiag = describeErr(e);
+        log.e("model", `load FAIL ${bootDiag}`);
+        showError();
+        return;
+      }
+      resizeCanvas();
+      loadingEl.classList.add("hidden");
     }
-    bootError = "model";
-    log.i("model", `loading ${store.getSettings().model}`);
-    try {
-      engine = await PoseEngine.create({ model: store.getSettings().model });
-      log.i("model", "loaded ok");
-    } catch (e) {
-      bootDiag = describeErr(e);
-      log.e("model", `load FAIL ${bootDiag}`);
-      showError();
-      return;
-    }
-    resizeCanvas();
-    loadingEl.classList.add("hidden");
     calories.setExercise(current);
     calories.start(Date.now());
     setExercise(current, false);
     renderChips();
     running = true;
-    void loopTick();
+    if (!camless) void loopTick();
     startTick();
     void health.setPipEnabled(true);
 
     if (health.isNative()) {
+      // Health Connect fallback poll (any watch synced via Samsung Health…).
+      // The RepCoun watch app overrides it with a live stream when fresh.
       hrMonitor = new HrMonitor((bpm) => {
-        hr = bpm;
-        hrPill.classList.toggle("hidden", bpm === null);
-        if (bpm) hrEl.textContent = String(bpm);
+        hrHc = bpm;
+        mergeHr();
       });
       hrMonitor.start();
+      // RepCoun watch: live reps + heart rate over the Wear OS bridge.
+      offWatch = subscribeWatch((path, data) => {
+        if (path === "rep") {
+          if (watchMode === "phone") return; // camera counts here
+          if (watchMode === "both" && !acceptRep("watch")) return;
+          bumpRep();
+        } else if (path === "hr") {
+          const bpm = Number((data as { bpm?: unknown }).bpm) || 0;
+          if (bpm > 0) {
+            hrWatch = { bpm, at: Date.now() };
+            mergeHr();
+          }
+        } else if (path === "stop") {
+          // watch FINISH button — open the save sheet
+          if (running && !paused && !closed) finishWorkout();
+        }
+      });
     }
+    // Tell the watch the phone workout is live (starts its sensor service too).
+    void watchSend("state", {
+      active: true,
+      exercise: current?.id ?? "auto",
+      label: current ? t(`exercise.${current.i18n}`) : t("workout.auto"),
+    });
   }
 
   async function enterMiniMode() {
@@ -703,6 +786,9 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     closed = true;
     running = false;
     void health.setPipEnabled(false);
+    offWatch?.();
+    offWatch = null;
+    void watchSend("state", { active: false }); // watch stops mirroring too
     if (loopTimer) window.clearTimeout(loopTimer);
     if (tickTimer) window.clearInterval(tickTimer);
     document.removeEventListener("visibilitychange", onVisibility);

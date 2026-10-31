@@ -1,0 +1,49 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+android {
+    namespace = "com.repcoun.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        // SAME applicationId + signing key as the phone app — Google Play
+        // Services Data Layer then pairs the two automatically (no pair code).
+        applicationId "com.repcoun.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        // targetSdk 33 keeps the rep-counting foreground service legal without
+        // a foregroundServiceType declaration (Android 14+ requires one).
+        targetSdkVersion 33
+        // Same CI build number as the phone APK → easy version matching.
+        def ciBuild = (project.findProperty('ciBuild') ?: '0').toString()
+        versionCode = 1 + ciBuild.toInteger()
+        versionName = "1.0.0+b${ciBuild}"
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = '21'
+    }
+    // Signed with the SAME committed debug key as the phone app so the Data
+    // Layer accepts both apps as one developer-signed pair.
+    signingConfigs {
+        debug {
+            storeFile file('../app/repcoun-debug.p12')
+            storeType 'PKCS12'
+            storePassword 'repcoun'
+            keyAlias 'repcoun'
+            keyPassword 'repcoun'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+    // Wear OS Data Layer — pairs with the phone app automatically
+    implementation "com.google.android.gms:play-services-wearable:18.1.0"
+}

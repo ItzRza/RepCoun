@@ -77,6 +77,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Wear OS: the "start from your watch" wake-up notification -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="true" />
 
     <!-- Health Connect: read heart rate from the watch, read workouts from other

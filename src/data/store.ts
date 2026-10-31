@@ -26,6 +26,8 @@ export const DEFAULT_SETTINGS: Settings = {
   trackToHc: true,
   repGoal: 100,
   repDepthPct: 100,
+  watchMode: "phone",
+  watchAutoOpen: false,
   onboardingDone: false,
 };
 

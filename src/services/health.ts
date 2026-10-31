@@ -48,6 +48,17 @@ type Plugin = {
   setPipEnabled(o: { enabled: boolean }): Promise<void>;
   enterPip(): Promise<{ ok: boolean }>;
   openAppSettings(): Promise<void>;
+  /* Wear OS bridge (phone ↔ watch) */
+  wearInit(o: { autoOpen: boolean; mode: string }): Promise<{
+    connected?: boolean;
+    node?: string;
+    pendingStart?: string;
+    pendingData?: object;
+  }>;
+  wearStatus(): Promise<{ connected?: boolean; node?: string }>;
+  wearSend(o: { path: string; data: object }): Promise<void>;
+  wearDeinit(): Promise<void>;
+  addListener(name: string, cb: (data: any) => void): Promise<{ remove: () => Promise<void> }>;
 };
 
 export interface HcSession {
@@ -93,6 +104,11 @@ function plugin(): Plugin | null {
     /* fall through */
   }
   return null;
+}
+
+/** Raw plugin handle for extra bridges (Wear OS). Null in a browser. */
+export function repcoun(): Plugin | null {
+  return plugin();
 }
 
 export const health = {
