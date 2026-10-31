@@ -12,7 +12,7 @@ import { getCustoms, addCustom, deleteCustom, JOINT_LABELS, TrackJoint } from ".
 import { runCalibration } from "../calibrate";
 import { getCloudEndpoint, setCloudEndpoint } from "../../services/online";
 import { getLbApi, setLbApi, testLbApi, downloadProgress } from "../../services/lbapi";
-import { cloudReady, currentUser, isGuest, signIn, signUp, signInWithGoogle, logOut, restoreSessions, saveUserData, configureCloud } from "../../services/cloud";
+import { cloudReady, currentUser, isGuest, hasGoogle, hasPassword, linkGoogle, addPassword, signIn, signUp, signInWithGoogle, logOut, restoreSessions, saveUserData, configureCloud } from "../../services/cloud";
 import { parseFirebaseSnippet } from "../../services/firebase-config";
 import type { Session } from "../../types";
 
@@ -401,11 +401,29 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
         `<div class="h2" style="margin-bottom:6px">Cloud account</div>
          <div class="sub" style="margin-bottom:14px">Signed in as <b>${esc(email)}</b></div>
          <button class="btn primary block" data-a="sync">Sync now (backup + restore)</button>
+         ${!hasGoogle() ? `<button class="btn soft block" style="margin-top:10px" data-a="linkg">Link Google</button>` : ""}
+         ${!hasPassword() ? `<button class="btn soft block" style="margin-top:10px" data-a="addpass">Add a password</button>` : ""}
          <button class="btn ghost block" style="margin-top:10px" data-a="out">Sign out</button>
          <button class="btn ghost block" style="margin-top:10px" data-a="close">${t("common.close")}</button>
          <div class="tiny" id="acc-msg" style="margin-top:10px;text-align:center"></div>`,
         (sheet, closeFn) => {
           sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
+          sheet.querySelector('[data-a="linkg"]')?.addEventListener("click", async () => {
+            const out = sheet.querySelector("#acc-msg") as HTMLElement;
+            out.textContent = "…";
+            const err = await linkGoogle();
+            out.textContent = err ?? "✓ Google linked";
+            if (!err) ctx.rerender();
+          });
+          sheet.querySelector('[data-a="addpass"]')?.addEventListener("click", async () => {
+            const pass = window.prompt("Choose a password (min 6 characters):") ?? "";
+            if (pass.length < 6) return;
+            const out = sheet.querySelector("#acc-msg") as HTMLElement;
+            out.textContent = "…";
+            const err = await addPassword(pass);
+            out.textContent = err ?? "✓ password added — you can sign in with email too";
+            if (!err) ctx.rerender();
+          });
           sheet.querySelector('[data-a="sync"]')!.addEventListener("click", async () => {
             const msg = sheet.querySelector("#acc-msg") as HTMLElement;
             msg.textContent = "…";

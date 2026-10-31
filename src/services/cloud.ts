@@ -10,6 +10,10 @@ import {
   signInWithEmailAndPassword,
   signInWithCredential,
   GoogleAuthProvider,
+  EmailAuthProvider,
+  linkWithCredential,
+  updatePassword,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   Auth,
@@ -25,6 +29,7 @@ import {
   Firestore,
 } from "firebase/firestore";
 import { loadCloudConfig, saveCloudConfig, CloudConfig } from "./firebase-config";
+import { log } from "./logger";
 import { health } from "./health";
 import { Session, Settings } from "../types";
 
@@ -106,6 +111,20 @@ export async function signUp(email: string, password: string): Promise<string | 
     await createUserWithEmailAndPassword(auth, email, password);
     return null;
   } catch (e) {
+    const code = (e as { code?: string }).code ?? "";
+    // Same email already registered with Google → pair the password to it.
+    if (code === "auth/email-already-in-use" && user && user.email?.toLowerCase() === email.toLowerCase()) {
+      try {
+        await linkWithCredential(user, EmailAuthProvider.credential(email, password));
+        log.i("auth", "linked password to google account");
+        return null;
+      } catch (e2) {
+        return (e2 as Error).message;
+      }
+    }
+    if (code === "auth/email-already-in-use") {
+      return "This email is already used here — sign in with Google first, then you can add a password";
+    }
     return (e as Error).message;
   }
 }
@@ -135,6 +154,69 @@ export async function signInWithGoogle(): Promise<string | null> {
   if (!r.idToken) return "Google gave no ID token";
   try {
     await signInWithCredential(auth, GoogleAuthProvider.credential(r.idToken));
+    return null;
+  } catch (e) {
+    const code = (e as { code?: string }).code ?? "";
+    if (code === "auth/account-exists-with-different-credential") {
+      return "This email already has a password account — sign in with your password, then tap 'Link Google'";
+    }
+    return (e as Error).message;
+  }
+}
+
+/** Is this account able to sign in with email+password? */
+export function hasPassword(): boolean {
+  init();
+  return !!user?.providerData.some((p) => p?.providerId === "password");
+}
+
+/** Is this account linked to Google? */
+export function hasGoogle(): boolean {
+  init();
+  return !!user?.providerData.some((p) => p?.providerId === "google.com");
+}
+
+/** Add a password to the current account (e.g. created with Google). */
+export async function addPassword(pass: string): Promise<string | null> {
+  init();
+  if (!auth?.currentUser) return "not signed in";
+  try {
+    await updatePassword(auth.currentUser, pass);
+    return null;
+  } catch (e) {
+    const code = (e as { code?: string }).code ?? "";
+    if (code === "auth/requires-recent-login") return "please sign out and sign in again first";
+    return (e as Error).message;
+  }
+}
+
+/** Link Google to the current (email) account — one account, two ways in. */
+export async function linkGoogle(): Promise<string | null> {
+  init();
+  const cfg = loadCloudConfig();
+  if (!auth?.currentUser) return "not signed in";
+  if (!cfg?.googleWebClientId) return "Google Sign-In is not configured yet";
+  const r = await health.googleSignIn(cfg.googleWebClientId);
+  if (r.error) return r.error;
+  if (!r.idToken) return "Google gave no ID token";
+  try {
+    await linkWithCredential(auth.currentUser, GoogleAuthProvider.credential(r.idToken));
+    return null;
+  } catch (e) {
+    const code = (e as { code?: string }).code ?? "";
+    if (code === "auth/credential-already-in-use") {
+      return "That Google account has its own login — sign out, then 'Continue with Google'";
+    }
+    return (e as Error).message;
+  }
+}
+
+/** Password reset — Firebase emails a reset link. */
+export async function resetPassword(email: string): Promise<string | null> {
+  init();
+  if (!auth) return "cloud not configured";
+  try {
+    await sendPasswordResetEmail(auth, email);
     return null;
   } catch (e) {
     return (e as Error).message;
