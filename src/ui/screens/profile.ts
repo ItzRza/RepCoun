@@ -66,6 +66,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       ${row("myex", icons.trophy, "My exercises", String(getCustoms().length))}
       ${row("account", icons.info, "Cloud account", currentUser() ? "ON" : isGuest() ? "Guest" : "OFF")}
       ${row("camera", icons.camera_flip, t("profile.camera"), s.cameraFacing === "user" ? t("profile.front") : t("profile.back"))}
+      ${canInstall() ? row("install", icons.download, "Install on iPhone", "Share ▸ Add to Home") : ""}
     </div>
 
     <div class="section-title"><div class="h2">${t("profile.health")}</div></div>
@@ -144,6 +145,7 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
         ], s.unit, (v) => ctx.saveSettings({ unit: v as "metric" | "imperial" }));
       case "language": return pickSheet(t("profile.language"), LOCALES.map((l) => [l.native, l.code] as [string, string]), s.lang, (v) => ctx.saveSettings({ lang: v }));
       case "theme": return themeSheet();
+      case "install": return a2hsSheet();
       case "model": return pickSheet(t("profile.model"), [
           [t("profile.model_full"), "full"], [t("profile.model_lite"), "lite"],
         ], s.model, (v) => {
@@ -280,6 +282,32 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       };
       wire();
     });
+  }
+
+  /** iPhone Safari (not yet on the Home Screen) — how to install RepCoun. */
+  function a2hsSheet() {
+    ctx.openSheet(
+      `<div class="h2" style="margin-bottom:6px">Install RepCoun on iPhone</div>
+       <div class="sub" style="margin-bottom:10px">It gets its own icon and opens full-screen like a normal app — no App Store needed:</div>
+       <div class="list">
+         <div class="list-row">
+           <div class="emoji">1️⃣</div>
+           <div style="flex:1" class="h3">Tap the Share button in Safari<br><span class="tiny">the square with the arrow going up</span></div>
+         </div>
+         <div class="list-row">
+           <div class="emoji">2️⃣</div>
+           <div style="flex:1" class="h3">Scroll down and choose <b>Add to Home Screen</b></div>
+         </div>
+         <div class="list-row">
+           <div class="emoji">3️⃣</div>
+           <div style="flex:1" class="h3">Tap <b>Add</b> — the RepCoun icon is now on your Home Screen</div>
+         </div>
+       </div>
+       <button class="btn primary block" style="margin-top:14px" data-a="close">${t("common.close")}</button>`,
+      (sheet, closeFn) => {
+        sheet.querySelector('[data-a="close"]')!.addEventListener("click", () => closeFn());
+      }
+    );
   }
 
   /** Connect API — leaderboard server + friend group setup. */
@@ -734,6 +762,17 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) refreshHc();
   });
+}
+
+/** Offer "Install on iPhone" only in iPhone Safari (not installed, not the APK). */
+function canInstall(): boolean {
+  if ((window as unknown as { Capacitor?: unknown }).Capacitor) return false; // running as the Android app
+  const standalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  if (standalone || !location.protocol.startsWith("http")) return false;
+  const iOS =
+    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (/Mac/.test(navigator.userAgent) && "ontouchend" in document); // iPad pretends to be a Mac
+  return iOS;
 }
 
 function row(a: string, icon: string, label: string, value: string): string {

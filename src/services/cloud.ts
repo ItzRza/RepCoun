@@ -9,6 +9,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithCredential,
+  signInWithPopup,
+  signInWithRedirect,
+  linkWithPopup,
+  linkWithRedirect,
   GoogleAuthProvider,
   EmailAuthProvider,
   linkWithCredential,
@@ -141,27 +145,56 @@ export async function signIn(email: string, password: string): Promise<string | 
 }
 
 /**
- * Sign in with Google. The native dialog (web popups are blocked in WebViews)
- * returns an ID token which Firebase trades for a session.
+ * Sign in with Google.
+ * - Android app: the native dialog (web popups are blocked inside WebViews).
+ * - Browser / iPhone PWA: a Google popup, falling back to a full-page redirect
+ *   (iOS home-screen mode blocks popups — Firebase resumes us after sign-in).
  */
 export async function signInWithGoogle(): Promise<string | null> {
   init();
   if (!auth) return "cloud not configured";
-  const cfg = loadCloudConfig();
-  if (!cfg?.googleWebClientId) return "Google Sign-In is not configured yet";
-  const r = await health.googleSignIn(cfg.googleWebClientId);
-  if (r.error) return r.error;
-  if (!r.idToken) return "Google gave no ID token";
+
+  if (health.isNative()) {
+    const cfg = loadCloudConfig();
+    if (!cfg?.googleWebClientId) return "Google Sign-In is not configured yet";
+    const r = await health.googleSignIn(cfg.googleWebClientId);
+    if (r.error) return r.error;
+    if (!r.idToken) return "Google gave no ID token";
+    try {
+      await signInWithCredential(auth, GoogleAuthProvider.credential(r.idToken));
+      return null;
+    } catch (e) {
+      return googleAuthError(e);
+    }
+  }
+
   try {
-    await signInWithCredential(auth, GoogleAuthProvider.credential(r.idToken));
+    await signInWithPopup(auth, new GoogleAuthProvider());
     return null;
   } catch (e) {
     const code = (e as { code?: string }).code ?? "";
-    if (code === "auth/account-exists-with-different-credential") {
-      return "This email already has a password account — sign in with your password, then tap 'Link Google'";
+    if (code.includes("popup")) {
+      try {
+        await signInWithRedirect(auth, new GoogleAuthProvider());
+        return null; // the page is navigating to Google right now
+      } catch (e2) {
+        return (e2 as Error).message;
+      }
     }
-    return (e as Error).message;
+    return googleAuthError(e);
   }
+}
+
+/** Friendly message for the shared Google sign-in cases. */
+function googleAuthError(e: unknown): string {
+  const code = (e as { code?: string }).code ?? "";
+  if (code === "auth/account-exists-with-different-credential") {
+    return "This email already has a password account — sign in with your password, then tap 'Link Google'";
+  }
+  if (code === "auth/unauthorized-domain") {
+    return "Google sign-in isn't allowed on this website yet — add the domain in Firebase → Authentication → Authorized domains";
+  }
+  return (e as Error).message;
 }
 
 /** Is this account able to sign in with email+password? */
@@ -193,8 +226,31 @@ export async function addPassword(pass: string): Promise<string | null> {
 /** Link Google to the current (email) account — one account, two ways in. */
 export async function linkGoogle(): Promise<string | null> {
   init();
-  const cfg = loadCloudConfig();
   if (!auth?.currentUser) return "not signed in";
+
+  // Browser / PWA → link straight from a Google popup (redirect fallback on iOS).
+  if (!health.isNative()) {
+    try {
+      await linkWithPopup(auth.currentUser, new GoogleAuthProvider());
+      return null;
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? "";
+      if (code.includes("popup")) {
+        try {
+          await linkWithRedirect(auth.currentUser, new GoogleAuthProvider());
+          return null;
+        } catch (e2) {
+          return (e2 as Error).message;
+        }
+      }
+      if (code === "auth/credential-already-in-use") {
+        return "That Google account has its own login — sign out, then 'Continue with Google'";
+      }
+      return (e as Error).message;
+    }
+  }
+
+  const cfg = loadCloudConfig();
   if (!cfg?.googleWebClientId) return "Google Sign-In is not configured yet";
   const r = await health.googleSignIn(cfg.googleWebClientId);
   if (r.error) return r.error;
