@@ -72,6 +72,8 @@
   "workout.detected": "Erkannt: {exercise}",
   "workout.auto": "Auto",
   "workout.reset": "Zurücksetzen",
+  "workout.undo": "Rückgängig",
+  "workout.learned": "Neue Bewegung gelernt: {name} — in Meine Übungen gespeichert",
   "workout.finish": "Fertig",
   "workout.great": "Gute Wiederholung!",
   "workout.deep": "Nice Tiefe! 🔥",

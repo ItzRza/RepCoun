@@ -4,7 +4,8 @@
  */
 
 import type { Ctx } from "../../app";
-import { PoseEngine } from "../../engine/pose";
+import { PoseEngine, acquirePose, releasePose } from "../../engine/pose";
+import { MoveLearner } from "../../engine/moveLearner";
 import { computeFeatures, EXERCISES, EXERCISE_MAP, AUTO, AutoDetector, ExerciseDef } from "../../engine/exercises";
 import { RepCounter, RejectReason } from "../../engine/repCounter";
 import { CalorieTracker } from "../../engine/calories";
@@ -15,6 +16,7 @@ import { cloudAssist, getCloudEndpoint, isOnline } from "../../services/online";
 import { store } from "../../data/store";
 import { getLbApi, submitScore, uploadProgress } from "../../services/lbapi";
 import { currentUser, saveSession as cloudSaveSession, saveUserData } from "../../services/cloud";
+import { addCustom, getCustoms } from "../../data/custom";
 import { subscribeWatch, watchSend } from "../../services/watch";
 import { personalRecords } from "../../data/store";
 import { t } from "../../i18n/i18n";
@@ -78,6 +80,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
         <div class="chips"></div>
         <div class="workout-actions">
           <button class="btn ghost" data-act="reset">${icons.sync}${t("workout.reset")}</button>
+          <button class="btn ghost" data-act="undo" style="flex:0 0 auto" title="${t("workout.undo")}">${icons.undo}</button>
           <button class="btn success" data-act="finish">${icons.check}${t("workout.finish")}</button>
         </div>
       </div>
@@ -148,6 +151,8 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   let lastRepAt = 0;
   let lastRepSrc: "pose" | "watch" | null = null;
   let offWatch: (() => void) | null = null;
+  /** auto-learn: unknown repeated movements become custom exercises */
+  const learner = new MoveLearner(() => getCustoms());
 
   const toast = (msg: string, kind: "good" | "bad" | "info" = "info") => {
     const el = h(`<div class="toast ${kind}">${msg}</div>`);
@@ -421,9 +426,22 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
         } else {
           gateFailSince = 0;
         }
-        if (gateOk) detector?.update(f, performance.now());
+        if (gateOk && !camless) detector?.update(f, performance.now());
         calories.tick(Date.now(), hr);
         kcalEl.textContent = String(Math.round(calories.total));
+
+        // ---- auto-learn unknown movements (Smart scan) ----
+        if (selected === AUTO && settings.autoLearn && !camless) {
+          const learned = learner.update(f, Date.now(), current === null || current.i18n.startsWith("__custom_"));
+          if (learned) {
+            learned.name = `My move ${getCustoms().length + 1}`;
+            addCustom(learned);
+            setExercise(EXERCISE_MAP[learned.id], true);
+            toast(t("workout.learned", { name: learned.name }), "good");
+          }
+        } else {
+          learner.clear();
+        }
       } else {
         noPersonSince = noPersonSince || Date.now();
         if (Date.now() - noPersonSince > 2200) {
@@ -450,10 +468,28 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   document.addEventListener("visibilitychange", onVisibility);
 
   /* -------------------------------- actions ------------------------------- */
+  function undoRep() {
+    const isTimed = current?.mode === "timed";
+    if (isTimed) {
+      if (holdSecs <= 0) return;
+      holdSecs = Math.max(0, holdSecs - 1);
+      countEl.textContent = String(holdSecs);
+    } else {
+      if (reps <= 0) return;
+      reps--;
+      const key = current?.id ?? "mixed";
+      if (breakdown[key]) breakdown[key]--;
+      countEl.textContent = String(reps);
+    }
+    toast(t("workout.undo"), "info");
+    if (settings.haptics) haptic(8);
+  }
+
   function resetWorkout() {
     reps = 0; rejected = 0; holdSecs = 0;
     lastRepAt = 0; lastRepSrc = null;
     hrWatch = null;
+    learner.reset();
     startTs = Date.now();
     calories = new CalorieTracker({ weightKg: settings.weightKg, age: settings.age, sex: settings.sex });
     calories.setExercise(current);
@@ -722,7 +758,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
       bootError = "model";
       log.i("model", `loading ${store.getSettings().model}`);
       try {
-        engine = await PoseEngine.create({ model: store.getSettings().model });
+        engine = await acquirePose(store.getSettings().model);
         log.i("model", "loaded ok");
       } catch (e) {
         bootDiag = describeErr(e);
@@ -793,7 +829,11 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     if (tickTimer) window.clearInterval(tickTimer);
     document.removeEventListener("visibilitychange", onVisibility);
     hrMonitor?.stop();
-    engine?.close();
+    // Keep the pose engine warm — the next workout opens instantly.
+    if (engine) {
+      releasePose(engine);
+      engine = null;
+    }
     stopCamera();
     overlay.remove();
     document.body.style.overflow = "";
@@ -805,6 +845,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     const act = btn.dataset.act;
     if (act === "close") close();
     else if (act === "reset") resetWorkout();
+    else if (act === "undo") undoRep();
     else if (act === "finish") finishWorkout();
     else if (act === "help") helpSheet();
     else if (act === "flip") void flipCamera();

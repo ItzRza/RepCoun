@@ -63,6 +63,8 @@ export class PoseEngine {
   private landmarker: PoseLandmarker | null = null;
   private lastTs = 0;
   private delegate: "GPU" | "CPU" = "GPU";
+  /** which model this engine runs — used by the warm-engine pool */
+  modelKind: "full" | "lite" = "lite";
 
   private constructor() {}
 
@@ -164,5 +166,59 @@ export class PoseEngine {
   close() {
     this.landmarker?.close();
     this.landmarker = null;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Warm engine pool — creating an engine is expensive (WASM init, model
+ * parse, GPU compile ≈ seconds on phones), which made every workout take
+ * long to "find the body". We pre-create ONE engine in the background and
+ * hand it over instantly when a workout starts.
+ * ------------------------------------------------------------------ */
+
+let warm: PoseEngine | null = null;
+let warming: Promise<PoseEngine | null> | null = null;
+
+/** Start building the engine in the background (call at app start). */
+export function preloadPose(model: "full" | "lite"): void {
+  if (warm || warming) return;
+  warming = PoseEngine.create({ model })
+    .then((e) => {
+      e.modelKind = model;
+      warm = e;
+      return e;
+    })
+    .catch(() => null)
+    .finally(() => {
+      warming = null;
+    });
+}
+
+/** Get an engine instantly when one is warm, else create one. */
+export async function acquirePose(model: "full" | "lite"): Promise<PoseEngine> {
+  if (warm && warm.modelKind === model) {
+    const e = warm;
+    warm = null;
+    return e;
+  }
+  if (warming) {
+    const e = await warming;
+    warming = null;
+    if (e && e.modelKind === model) {
+      warm = null;
+      return e;
+    }
+  }
+  const e = await PoseEngine.create({ model });
+  e.modelKind = model;
+  return e;
+}
+
+/** Done with the engine — keep it warm for the next workout. */
+export function releasePose(e: PoseEngine): void {
+  if (!warm) {
+    warm = e;
+  } else {
+    e.close();
   }
 }

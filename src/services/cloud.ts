@@ -53,13 +53,52 @@ function init() {
     db = getFirestore(app);
     onAuthStateChanged(auth, (u) => {
       user = u;
+      if (u?.email) localStorage.setItem(LAST_EMAIL_KEY, u.email);
+      markAuthReady();
       authListeners.forEach((fn) => fn(u ? u.email ?? "" : null));
     });
   } catch {
     app = null; // bad config — degrade to offline
     auth = null;
     db = null;
+    markAuthReady();
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Session restore is ASYNC (Firebase reads its store in the background).
+ * Without waiting for the first auth event, every cold start looked like
+ * "signed out" and showed the login screen even though the session was
+ * fine — the bug behind "every time I open the app I have to sign in".
+ * ------------------------------------------------------------------ */
+
+const LAST_EMAIL_KEY = "repcoun:lastEmail";
+let authSettled = false;
+const authWaiters: Array<() => void> = [];
+
+function markAuthReady() {
+  if (authSettled) return;
+  authSettled = true;
+  authWaiters.splice(0).forEach((w) => w());
+}
+
+/** Resolves once Firebase finished restoring (or discarding) the saved session. */
+export function waitForAuth(): Promise<void> {
+  init();
+  if (authSettled || !auth) {
+    markAuthReady();
+    return Promise.resolve();
+  }
+  return new Promise((res) => {
+    authWaiters.push(res);
+    // Safety: never block the UI if the auth store hangs.
+    window.setTimeout(res, 3000);
+  });
+}
+
+/** Last signed-in email — pre-fills the login form after a sign-out. */
+export function lastEmail(): string {
+  return localStorage.getItem(LAST_EMAIL_KEY) ?? "";
 }
 
 /** Save the pasted Firebase config on this phone and connect to it. */

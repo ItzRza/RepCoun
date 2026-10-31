@@ -13,10 +13,11 @@ import { renderLeaderboard } from "./ui/screens/leaderboard";
 import { renderProfile } from "./ui/screens/profile";
 import { renderOnboarding } from "./ui/screens/onboarding";
 import { renderLogin } from "./ui/screens/login";
-import { cloudReady, currentUser, isGuest, onAuthChange } from "./services/cloud";
+import { cloudReady, currentUser, isGuest, onAuthChange, waitForAuth } from "./services/cloud";
 import { health } from "./services/health";
 import { watchInit, watchDeinit, watchSend, subscribeWatch } from "./services/watch";
 import { EXERCISE_MAP } from "./engine/exercises";
+import { preloadPose } from "./engine/pose";
 import { openWorkout } from "./ui/screens/workout";
 import "./ui/screens/workout.css";
 
@@ -68,6 +69,12 @@ export class App {
     window.addEventListener("hashchange", () => this.readHash());
 
     // Login at app start — guest mode keeps everything offline and skips it.
+    // waitForAuth: Firebase restores the saved session ASYNC — without this
+    // every cold start flashed the login screen even though you were signed in.
+    if (cloudReady() && !isGuest()) {
+      this.root.innerHTML = `<div class="screen" style="display:grid;place-items:center;min-height:100dvh"><div class="h2" style="opacity:.55">RepCoun</div></div>`;
+      await waitForAuth();
+    }
     if (cloudReady() && !isGuest() && !currentUser()) {
       renderLogin(this.root, this.ctx(), () => this.start());
       return;
@@ -79,6 +86,10 @@ export class App {
     }
     this.readHash(true);
     this.render();
+
+    // Warm up the pose engine in the background — the workout screen then
+    // "finds your body" in a second instead of many (model load is the cost).
+    preloadPose(store.getSettings().model);
 
     // Wear OS bridge — cloud account required (guest mode excluded).
     onAuthChange((email) => void this.syncWatch(email));
@@ -195,6 +206,7 @@ export class App {
   private openSheet(html: string, onMount?: (sheet: HTMLElement, close: () => void) => void): () => void {
     const backdrop = h(`<div class="sheet-backdrop"><div class="sheet"><div class="grabber"></div>${html}</div></div>`);
     document.body.appendChild(backdrop);
+    const sheet = backdrop.querySelector(".sheet") as HTMLElement;
     const close = () => {
       backdrop.style.animation = "fade-in 0.18s ease reverse";
       setTimeout(() => backdrop.remove(), 160);
@@ -207,7 +219,38 @@ export class App {
     backdrop.addEventListener("click", (e) => {
       if (e.target === backdrop) close();
     });
-    onMount?.(backdrop.querySelector(".sheet")!, close);
+
+    // Drag the sheet down to close it (grabber / top of the sheet).
+    let dragY = -1;
+    let dy = 0;
+    sheet.addEventListener("pointerdown", (e) => {
+      const topZone = sheet.getBoundingClientRect().top + 56;
+      const onGrabber = !!(e.target as HTMLElement).closest(".grabber");
+      if (!onGrabber && e.clientY > topZone) return; // normal taps/scrolls inside
+      dragY = e.clientY;
+      dy = 0;
+      sheet.style.transition = "none";
+      sheet.setPointerCapture?.(e.pointerId);
+    });
+    sheet.addEventListener("pointermove", (e) => {
+      if (dragY < 0) return;
+      dy = Math.max(0, e.clientY - dragY);
+      sheet.style.transform = `translateY(${dy}px)`;
+    });
+    const dragEnd = () => {
+      if (dragY < 0) return;
+      dragY = -1;
+      if (dy > 90) {
+        close(); // dragged far enough — dismiss
+      } else {
+        sheet.style.transition = "transform .2s ease";
+        sheet.style.transform = "translateY(0)";
+      }
+    };
+    sheet.addEventListener("pointerup", dragEnd);
+    sheet.addEventListener("pointercancel", dragEnd);
+
+    onMount?.(sheet, close);
     return close;
   }
 

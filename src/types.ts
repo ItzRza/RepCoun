@@ -24,6 +24,8 @@ export interface Settings {
   watchMode: "phone" | "watch" | "both";
   /** auto-open a workout on the phone when the watch detects a sport */
   watchAutoOpen: boolean;
+  /** auto-learn: unknown repeated movements become custom exercises */
+  autoLearn: boolean;
   onboardingDone: boolean;
 }
 

@@ -72,6 +72,8 @@
   "workout.detected": "Detectado: {exercise}",
   "workout.auto": "Auto",
   "workout.reset": "Redefinir",
+  "workout.undo": "Desfazer",
+  "workout.learned": "Novo movimento aprendido: {name} — salvo em Meus exercícios",
   "workout.finish": "Concluir",
   "workout.great": "Boa repetição!",
   "workout.deep": "Boa profundidade! 🔥",

@@ -72,6 +72,8 @@
   "workout.detected": "تم الرصد: {exercise}",
   "workout.auto": "تلقائي",
   "workout.reset": "إعادة تعيين",
+  "workout.undo": "تراجع",
+  "workout.learned": "تم تعلّم حركة جديدة: {name} — حُفظت في تماريني",
   "workout.finish": "إنهاء",
   "workout.great": "تكرار رائع!",
   "workout.deep": "عمق ممتاز! 🔥",

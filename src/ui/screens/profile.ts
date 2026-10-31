@@ -66,6 +66,8 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
       ${row("depth", icons.target, "Rep depth %", `${s.repDepthPct}%`)}
       ${row("myex", icons.trophy, "My exercises", String(getCustoms().length))}
       ${row("account", icons.info, "Cloud account", currentUser() ? "ON" : isGuest() ? "Guest" : "OFF")}
+      ${currentUser() ? row("logout", icons.logout, "Log out", currentUser() ?? "") : ""}
+      ${toggleRow("autolearn", icons.bolt, "Auto-learn new moves", "Unknown repeated movements become custom exercises", s.autoLearn)}
       ${row("camera", icons.camera_flip, t("profile.camera"), s.cameraFacing === "user" ? t("profile.front") : t("profile.back"))}
       ${canInstall() ? row("install", icons.download, "Install on iPhone", "Share ▸ Add to Home") : ""}
     </div>
@@ -189,6 +191,12 @@ export function renderProfile(root: HTMLElement, ctx: Ctx) {
           [t("profile.front"), "user"], [t("profile.back"), "environment"],
         ], s.cameraFacing, (v) => ctx.saveSettings({ cameraFacing: v as "user" | "environment" }));
       case "autodetect": return ctx.saveSettings({ autoDetect: !s.autoDetect });
+      case "autolearn": return ctx.saveSettings({ autoLearn: !s.autoLearn });
+      case "logout": {
+        void logOut();
+        ctx.toast("Signed out", "info");
+        return ctx.rerender();
+      }
       case "sound": return ctx.saveSettings({ sound: !s.sound, haptics: !s.haptics });
       case "trackToHc": return ctx.saveSettings({ trackToHc: !s.trackToHc });
       case "watchconn": return watchStatusSheet();

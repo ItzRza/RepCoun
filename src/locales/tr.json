@@ -72,6 +72,8 @@
   "workout.detected": "Algılanan: {exercise}",
   "workout.auto": "Otomatik",
   "workout.reset": "Sıfırla",
+  "workout.undo": "Geri al",
+  "workout.learned": "Yeni hareket öğrenildi: {name} — Hareketlerime kaydedildi",
   "workout.finish": "Bitir",
   "workout.great": "Harika tekrar!",
   "workout.deep": "Güzel derinlik! 🔥",

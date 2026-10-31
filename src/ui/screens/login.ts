@@ -7,7 +7,7 @@
 import type { Ctx } from "../../app";
 import { t } from "../../i18n/i18n";
 import { icons } from "../icons";
-import { signInWithGoogle, signIn, signUp, resetPassword, onAuthChange, setGuest } from "../../services/cloud";
+import { signInWithGoogle, signIn, signUp, resetPassword, onAuthChange, setGuest, lastEmail } from "../../services/cloud";
 import { log } from "../../services/logger";
 
 export function renderLogin(root: HTMLElement, ctx: Ctx, onDone: () => void) {
@@ -66,7 +66,7 @@ export function renderLogin(root: HTMLElement, ctx: Ctx, onDone: () => void) {
 function authSheet(ctx: Ctx, register: boolean, onDone: () => void) {
   ctx.openSheet(
     `<div class="h2" style="margin-bottom:12px">${register ? t("profile.create_account") : t("profile.sign_in")}</div>
-     <input class="input" id="acc-mail" placeholder="email">
+     <input class="input" id="acc-mail" placeholder="email" value="${lastEmail()}">
      <input class="input" id="acc-pass" type="password" style="margin-top:10px" placeholder="password (min 6 characters)">
      <button class="btn primary block" style="margin-top:14px" data-a="go">${register ? t("profile.create_account") : t("profile.sign_in")}</button>
      ${register ? "" : `<button class="btn ghost block" style="margin-top:10px" data-a="forgot">Forgot password?</button>`}

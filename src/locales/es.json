@@ -72,6 +72,8 @@
   "workout.detected": "Detectado: {exercise}",
   "workout.auto": "Auto",
   "workout.reset": "Reiniciar",
+  "workout.undo": "Deshacer",
+  "workout.learned": "Nuevo movimiento aprendido: {name} — guardado en Mis ejercicios",
   "workout.finish": "Listo",
   "workout.great": "¡Buena repetición!",
   "workout.deep": "¡Buen rango de movimiento! 🔥",

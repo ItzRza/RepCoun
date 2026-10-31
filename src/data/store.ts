@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   repDepthPct: 100,
   watchMode: "phone",
   watchAutoOpen: false,
+  autoLearn: true,
   onboardingDone: false,
 };
 
