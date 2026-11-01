@@ -3,7 +3,7 @@
  * account and restores it on any phone. Everything works offline without it.
  */
 
-import { initializeApp, FirebaseApp } from "firebase/app";
+import { initializeApp, deleteApp, getApp, FirebaseApp } from "firebase/app";
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -48,10 +48,20 @@ function init() {
   const cfg = loadCloudConfig();
   if (!cfg) return;
   try {
-    app = initializeApp({ ...cfg }, `repcoun-${Date.now()}`);
+    // The Firebase auth persistence key CONTAINS THE APP NAME — it must be
+    // stable across launches. The old code used `repcoun-${Date.now()}`, a
+    // fresh name every start, so the saved session could never be found
+    // again (the "sign in every time" bug). Reuse the default app or create it.
+    try {
+      app = getApp();
+    } catch {
+      app = initializeApp({ ...cfg });
+    }
+    const myApp = app;
     auth = getAuth(app);
     db = getFirestore(app);
     onAuthStateChanged(auth, (u) => {
+      if (app !== myApp) return; // superseded by a reconfigure — ignore
       user = u;
       if (u?.email) localStorage.setItem(LAST_EMAIL_KEY, u.email);
       markAuthReady();
@@ -105,10 +115,18 @@ export function lastEmail(): string {
 export function configureCloud(cfg: CloudConfig): string | null {
   try {
     saveCloudConfig(cfg);
+    const old = app;
     app = null;
     auth = null;
     db = null;
     user = null;
+    if (old) {
+      try {
+        void deleteApp(old); // drops the old app name so init() can rebuild
+      } catch {
+        /* ignore */
+      }
+    }
     init();
     return null;
   } catch (e) {

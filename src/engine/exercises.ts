@@ -132,12 +132,25 @@ export function computeFeatures(lms: Landmarks | null): BodyFeatures {
 
   const legOpenRaw = la && ra ? dist2d(la, ra) / bodyLen : 0;
 
+  // Leg direction: 0 = legs point DOWN (standing, bent over, all fours),
+  // 90 = legs horizontal (lying down). A bent-over pose has a "horizontal"
+  // torso just like a push-up — the legs are what tell them apart. Without
+  // this, every floor / bent-over movement was detected as push-ups.
+  let legsFlat = 1; // knees out of frame → can't judge → don't penalize
+  const kneePts: NonNullable<typeof lk>[] = [];
+  if (lk && vis(lk) > 0.4) kneePts.push(lk);
+  if (rk && vis(rk) > 0.4) kneePts.push(rk);
+  if (kneePts.length > 0) {
+    const legTilt = Math.max(...kneePts.map((k) => tiltVsVertical(mh, k)));
+    legsFlat = clamp((legTilt - 35) / 25, 0, 1);
+  }
+
   // push-up position quality: horizontal torso + wrists vertically near shoulders
   let prone = 0;
   if (torsoTilt > 55 && lw && rw) {
     const wristNear = 1 - clamp(Math.min(Math.abs(lw.x - ls.x), Math.abs(rw.x - rs.x)) / (bodyLen * 0.7), 0, 1);
     const straightBody = 1 - clamp(Math.abs(torsoTilt - 80) / 30, 0, 1);
-    prone = clamp(wristNear * 0.5 + straightBody * 0.5, 0, 1);
+    prone = clamp(wristNear * 0.5 + straightBody * 0.5, 0, 1) * (0.3 + 0.7 * legsFlat);
   }
 
   // supine with bent knees (sit-up / bridge): horizontal + knees bent + feet under knees
@@ -152,7 +165,9 @@ export function computeFeatures(lms: Landmarks | null): BodyFeatures {
   if (torsoTilt > 60) {
     const straight = 1 - clamp(Math.abs(torsoTilt - 82) / 22, 0, 1);
     const elbowDown = le && lw && Math.abs(le.x - ls.x) < bodyLen * 0.35 ? 1 : 0.4;
-    plank = clamp(straight * 0.6 + elbowDown * 0.4, 0, 1) * (1 - clamp(Math.abs(Math.min(kneeL, kneeR) - 165) / 60, 0, 1) * 0.6);
+    plank = clamp(straight * 0.6 + elbowDown * 0.4, 0, 1)
+      * (1 - clamp(Math.abs(Math.min(kneeL, kneeR) - 165) / 60, 0, 1) * 0.6)
+      * (0.3 + 0.7 * legsFlat);
   }
 
   return {
@@ -355,7 +370,7 @@ export class AutoDetector {
   private streak = 0;
   private current: string | null = null;
 
-  constructor(private consistencyFrames = 16) {}
+  constructor(private consistencyFrames = 16, private minScore = 0.42) {}
 
   update(f: BodyFeatures): string | null {
     if (!f.ok) {
@@ -363,8 +378,12 @@ export class AutoDetector {
       return this.current;
     }
     let best: string | null = null;
-    let bestScore = 0.42; // minimum confidence to accept
+    let bestScore = this.minScore; // minimum confidence to accept
     for (const ex of EXERCISES) {
+      // The pose gate must match too — a similar angle pattern in the wrong
+      // body position is NOT that exercise (without this, any bent-over or
+      // floor movement was "detected" as push-ups).
+      if (ex.gate && !ex.gate(f)) continue;
       const s = ex.score(f);
       if (s > bestScore) {
         bestScore = s;

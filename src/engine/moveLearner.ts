@@ -13,7 +13,7 @@ import { CustomExercise } from "../data/custom";
 
 const JOINTS: TrackJoint[] = ["elbow", "knee", "hip", "arm", "custom"];
 const WINDOW = 130; // ~5s of samples at the detection rate
-const MIN_RANGE = 22; // degrees of movement to be "a movement" at all
+const MIN_RANGE = 20; // degrees of movement to be "a movement" at all
 const LEARN_COOLDOWN_MS = 25000; // never spam: one learn per 25s…
 const MAX_LEARNS = 3; // …and max 3 per workout
 
@@ -132,8 +132,9 @@ function derive(
       flips.push(i);
     }
   }
-  // 4 flips (up-down-up-down) = 2 full cycles → genuinely periodic.
-  if (flips.length < 4) return null;
+  // 3 flips (up-down-up) = 1.5 cycles → genuinely periodic, and enough to
+  // estimate the rep speed. Slow movements stay learnable.
+  if (flips.length < 3) return null;
 
   const reps = (flips.length - 1) / 2;
   const totalMs = t[flips[flips.length - 1]] - t[flips[0]];
