@@ -153,6 +153,8 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
   let offWatch: (() => void) | null = null;
   /** auto-learn: unknown repeated movements become custom exercises */
   const learner = new MoveLearner(() => getCustoms());
+  /** the current exercise was auto-detected (vs picked by hand) */
+  let autoPicked = false;
 
   const toast = (msg: string, kind: "good" | "bad" | "info" = "info") => {
     const el = h(`<div class="toast ${kind}">${msg}</div>`);
@@ -211,6 +213,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     if (!btn) return;
     haptic(8);
     selected = btn.dataset.ex!;
+    autoPicked = false;
     setExercise(selected === AUTO ? null : EXERCISE_MAP[selected], selected !== AUTO);
   });
 
@@ -227,6 +230,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
 
   /** Counts one rep (from the camera OR the watch). depth = pose quality toast. */
   function bumpRep(depth?: number) {
+    lastRepAt = Date.now(); // "the exercise is counting" — also feeds the learner valve
     reps++;
     breakdown[current?.id ?? "mixed"] = (breakdown[current?.id ?? "mixed"] ?? 0) + 1;
     countEl.textContent = String(reps);
@@ -410,7 +414,10 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
           } else {
             gateFailSince = 0;
             const id = auto.update(f);
-            if (id && current?.id !== id) setExercise(EXERCISE_MAP[id], true);
+            if (id && current?.id !== id) {
+              autoPicked = true;
+              setExercise(EXERCISE_MAP[id], true);
+            }
             // optional cloud assist when online & configured
             if (isOnline() && getCloudEndpoint() && Date.now() - lastCloud > 6000) {
               lastCloud = Date.now();
@@ -419,7 +426,10 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
                 frame.width = 320; frame.height = 240;
                 frame.getContext("2d")!.drawImage(video, 0, 0, 320, 240);
                 const cid = await cloudAssist(frame.toDataURL("image/jpeg", 0.6));
-                if (cid && current?.id !== cid) setExercise(EXERCISE_MAP[cid], true);
+                if (cid && current?.id !== cid) {
+                  autoPicked = true;
+                  setExercise(EXERCISE_MAP[cid], true);
+                }
               } catch { /* ignore */ }
             }
           }
@@ -432,10 +442,16 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
 
         // ---- auto-learn unknown movements (Smart scan) ----
         if (selected === AUTO && settings.autoLearn && !camless) {
-          const learned = learner.update(f, Date.now(), current === null || current.i18n.startsWith("__custom_"));
+          // If an auto-detected exercise counts NOTHING for 12s while you are
+          // clearly moving, it's the wrong label — let the learner take over.
+          const stale =
+            autoPicked && current !== null && current.mode !== "timed" && Date.now() - lastRepAt > 12000;
+          const canLearn = current === null || current.i18n.startsWith("__custom_") || stale;
+          const learned = learner.update(f, Date.now(), canLearn);
           if (learned) {
             learned.name = `My move ${getCustoms().length + 1}`;
             addCustom(learned);
+            autoPicked = false;
             setExercise(EXERCISE_MAP[learned.id], true);
             toast(t("workout.learned", { name: learned.name }), "good");
           }
@@ -489,6 +505,7 @@ export function openWorkout(ctx: Ctx, initialExercise?: string) {
     reps = 0; rejected = 0; holdSecs = 0;
     lastRepAt = 0; lastRepSrc = null;
     hrWatch = null;
+    autoPicked = false;
     learner.reset();
     startTs = Date.now();
     calories = new CalorieTracker({ weightKg: settings.weightKg, age: settings.age, sex: settings.sex });

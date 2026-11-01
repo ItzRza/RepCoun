@@ -48,6 +48,9 @@ function init() {
   const cfg = loadCloudConfig();
   if (!cfg) return;
   try {
+    // Adopt any session saved under an OLD build's random app name —
+    // otherwise the fix would still need one last manual sign-in.
+    migrateOldAuthSession(cfg);
     // The Firebase auth persistence key CONTAINS THE APP NAME — it must be
     // stable across launches. The old code used `repcoun-${Date.now()}`, a
     // fresh name every start, so the saved session could never be found
@@ -85,6 +88,42 @@ function init() {
 const LAST_EMAIL_KEY = "repcoun:lastEmail";
 let authSettled = false;
 const authWaiters: Array<() => void> = [];
+
+/**
+ * Older builds created the Firebase app with a random per-launch name
+ * (`repcoun-<timestamp>`), so every session was stored under its own
+ * localStorage key `firebase:authUser:<apiKey>:<name>` and could never be
+ * found again. Move the newest orphaned session to the stable key so the
+ * sign-in carries over instead of asking one last time.
+ */
+function migrateOldAuthSession(cfg: { apiKey: string }) {
+  try {
+    const target = `firebase:authUser:${cfg.apiKey}:[DEFAULT]`;
+    if (localStorage.getItem(target)) return; // already signed in properly
+    let bestKey: string | null = null;
+    let bestAt = -1;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(`firebase:authUser:${cfg.apiKey}:`) || k === target) continue;
+      try {
+        const blob = JSON.parse(localStorage.getItem(k) ?? "null") as { lastLoginAt?: number } | null;
+        const at = Number(blob?.lastLoginAt ?? 0) || 0;
+        if (at >= bestAt) {
+          bestAt = at;
+          bestKey = k;
+        }
+      } catch {
+        /* not a user blob — skip */
+      }
+    }
+    if (bestKey) {
+      localStorage.setItem(target, localStorage.getItem(bestKey) ?? "");
+      localStorage.removeItem(bestKey);
+    }
+  } catch {
+    /* never block startup on this */
+  }
+}
 
 function markAuthReady() {
   if (authSettled) return;

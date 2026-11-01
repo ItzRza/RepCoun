@@ -369,6 +369,8 @@ export class AutoDetector {
   private candidate: string | null = null;
   private streak = 0;
   private current: string | null = null;
+  /** recent values of the candidate's defining joint — proves the movement */
+  private motionBuf: number[] = [];
 
   constructor(private consistencyFrames = 16, private minScore = 0.42) {}
 
@@ -399,10 +401,27 @@ export class AutoDetector {
     } else {
       this.candidate = best;
       this.streak = 1;
+      this.motionBuf = [];
+    }
+    if (best) {
+      this.motionBuf.push(motionValue(f, EXERCISE_MAP[best].joint));
+      if (this.motionBuf.length > 36) this.motionBuf.shift();
     }
     if (this.streak >= this.consistencyFrames) {
-      this.current = best;
-      this.streak = 0;
+      // Position alone is NOT enough: a reps exercise is only accepted when
+      // its defining joint is actually moving. Lying in a plank-like pose and
+      // doing something else must not become "push-up" (that also blocked
+      // the auto-learner from ever seeing new movements).
+      const ex = best ? EXERCISE_MAP[best] : null;
+      const moving = !ex || ex.mode === "timed" || pRange(this.motionBuf) >= 15;
+      if (moving) {
+        this.current = best;
+        this.streak = 0;
+        this.motionBuf = [];
+      } else {
+        // hold at the threshold — accepts the moment real movement starts
+        this.streak = this.consistencyFrames;
+      }
     }
     return this.current;
   }
@@ -411,5 +430,26 @@ export class AutoDetector {
     this.candidate = null;
     this.streak = 0;
     this.current = null;
+    this.motionBuf = [];
   }
+}
+
+/** The angle a rep-counter watches for this exercise (averaged over both sides). */
+function motionValue(f: BodyFeatures, joint: TrackJoint): number {
+  switch (joint) {
+    case "elbow": return f.elbowAvg;
+    case "knee": return f.kneeAvg;
+    case "hip": return f.hipAvg;
+    case "arm": return f.armAvg;
+    default: return f.torsoTilt;
+  }
+}
+
+/** 10th..90th percentile range (robust against sensor noise). */
+function pRange(raw: number[]): number {
+  if (raw.length < 4) return 0;
+  const sorted = [...raw].sort((a, b) => a - b);
+  const lo = sorted[Math.floor(sorted.length * 0.1)];
+  const hi = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))];
+  return hi - lo;
 }
